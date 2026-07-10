@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Eggy Tour Map</title>
+<title>Ambassadors — Eggy Tour Map</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -45,6 +45,8 @@
 
   /* ---------- Header ---------- */
   header{padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .logo{flex:0 0 auto;filter:drop-shadow(0 2px 2px rgba(59,46,30,.2))}
   header h1{
     font-family:var(--font-display);
     font-weight:800;font-size:1.7rem;letter-spacing:-.02em;line-height:1.05;
@@ -159,6 +161,19 @@
   .egg-pin{filter:drop-shadow(0 2px 3px rgba(59,46,30,.35))}
   .egg-pin svg{transition:transform .12s ease;transform-origin:50% 100%}
   .egg-pin:hover svg,.egg-pin.hot svg{transform:scale(1.18)}
+  .egg-pin.soon svg{animation:hatch 1.6s ease-in-out infinite;transform-origin:50% 100%}
+  @keyframes hatch{
+    0%,100%{transform:scale(1)}
+    50%{transform:scale(1.12) rotate(-3deg)}
+  }
+
+  /* ---------- Legend ---------- */
+  #legend{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);
+  }
+  #legend .li{display:flex;align-items:center;gap:4px;font-size:.65rem;font-weight:800;color:var(--ink-soft);letter-spacing:.03em;text-transform:uppercase}
+  #legend svg{width:15px;height:19px}
 
   /* ---------- Mobile ---------- */
   #listToggle{display:none}
@@ -179,7 +194,7 @@
     #drawer{width:100%}
   }
   @media (prefers-reduced-motion:reduce){
-    *{transition:none !important}
+    *{transition:none !important;animation:none !important}
   }
 </style>
 </head>
@@ -188,9 +203,17 @@
   <aside id="sidebar">
     <button id="listToggle" aria-label="Expand or collapse show list"></button>
     <header>
-      <h1>Follow the <span class="egg">Yolk</span> Road</h1>
+      <div class="brand">
+        <svg class="logo" width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z"
+                fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"/>
+          <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"/>
+        </svg>
+        <h1>Ambassadors</h1>
+      </div>
       <div class="sub">Eggy tour map &amp; crew planner</div>
       <span id="datasource">loading dates…</span>
+      <div id="legend" aria-label="Pin legend"></div>
     </header>
     <div id="shows" role="list"></div>
   </aside>
@@ -270,17 +293,39 @@ cartoLayer.on("tileerror", ()=>{
   }
 });
 
-const eggSVG = (fill)=>`
+/* Egg "hatches" as the show gets closer:
+   tier 0 = this week (cracked open, pulsing)
+   tier 1 = this month (big crack)
+   tier 2 = next 3 months (hairline crack)
+   tier 3 = later (smooth, muted) */
+const daysUntil = d => Math.ceil((new Date(d+"T12:00:00") - new Date()) / 86400000);
+const tierOf = d => { const n = daysUntil(d); return n<=7 ? 0 : n<=30 ? 1 : n<=90 ? 2 : 3; };
+
+const eggSVG = (tier)=>{
+  const shell = tier===3 ? "#F1E9D8" : "#FDF8EF";
+  const stroke = tier===3 ? "#8A7A62" : "#3B2E1E";
+  const cracks = [
+    /* t0: big dramatic crack, nearly splitting the shell */
+    `<path d="M9 10 L14 14 L11 18 L17 22 L14 26 L19 29" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-linejoin="round"/>`,
+    /* t1: big zigzag crack */
+    `<path d="M12 12 L16 15 L14 18 L18 21" fill="none" stroke="${stroke}" stroke-width="1.9" stroke-linejoin="round"/>`,
+    /* t2: hairline crack */
+    `<path d="M14 11 L17 14 L15.5 17" fill="none" stroke="${stroke}" stroke-width="1.3" stroke-linejoin="round"/>`,
+    /* t3: smooth */
+    ``
+  ][tier];
+  return `
 <svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z"
-        fill="${fill}" stroke="#3B2E1E" stroke-width="2.2"/>
-  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"/>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"/>
+        fill="${shell}" stroke="${stroke}" stroke-width="2.2"/>
+  ${cracks}
+  <path d="M17 41 L17 43.5" stroke="${stroke}" stroke-width="2.2"/>
 </svg>`;
+};
 
-const eggIcon = (hot=false)=>L.divIcon({
-  className:"egg-pin"+(hot?" hot":""),
-  html:eggSVG("#FDF8EF"),
+const eggIcon = (tier=3, hot=false)=>L.divIcon({
+  className:"egg-pin"+(hot?" hot":"")+(tier===0?" soon":""),
+  html:eggSVG(tier),
   iconSize:[34,44], iconAnchor:[17,43], popupAnchor:[0,-40]
 });
 
@@ -376,7 +421,7 @@ function render(){
     el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();select(i,true);} });
     list.appendChild(el);
 
-    const m = L.marker([show.lat, show.lng], {icon:eggIcon(), title:`${show.venue} — ${show.date}`}).addTo(map);
+    const m = L.marker([show.lat, show.lng], {icon:eggIcon(tierOf(show.date)), title:`${show.venue} — ${show.date}`}).addTo(map);
     m.on("click", ()=>select(i,false));
     markers.push(m);
     bounds.push([show.lat, show.lng]);
@@ -390,7 +435,7 @@ function select(i, fly){
   activeIdx = i;
   const show = SHOWS[i];
   document.querySelectorAll(".show").forEach((el,j)=>el.classList.toggle("active", j===i));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(j===i)));
+  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j].date), j===i)));
   if(fly) map.flyTo([show.lat, show.lng], Math.max(map.getZoom(), 9), {duration:.7});
 
   document.getElementById("dWhen").textContent = fmtLong(show.date) + (show.endDate ? " – " + fmtLong(show.endDate) : "");
@@ -465,7 +510,7 @@ function renderCrew(show){
 document.getElementById("closeDrawer").addEventListener("click", ()=>{
   document.getElementById("drawer").classList.remove("open");
   document.querySelectorAll(".show").forEach(el=>el.classList.remove("active"));
-  markers.forEach(m=>m.setIcon(eggIcon()));
+  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j].date))));
   activeIdx = null;
 });
 document.querySelectorAll(".tab").forEach(tab=>{
@@ -481,6 +526,11 @@ document.getElementById("listToggle").addEventListener("click", ()=>{
 });
 
 loadShows();
+
+/* Legend: mini egg per tier */
+document.getElementById("legend").innerHTML = [
+  [0,"This week"],[1,"This month"],[2,"3 months"],[3,"Later"]
+].map(([t,label])=>`<span class="li">${eggSVG(t).replace('width="34" height="44"','width="15" height="19"')} ${label}</span>`).join("");
 </script>
 </body>
 </html>
