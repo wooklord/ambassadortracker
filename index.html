@@ -649,8 +649,8 @@ function select(i, fly){
     <div class="row"><div class="lbl">Date</div><div class="val">${fmtLong(show.date)}${show.endDate ? " → "+fmtLong(show.endDate):""}</div></div>
     <div class="row"><div class="lbl">Venue</div><div class="val">${esc(show.venue)}<br><span style="font-weight:600;color:var(--ink-soft)">${esc(show.city)}, ${esc(show.state)}</span></div></div>
     <a class="btn primary" href="${show.tickets || ticketSearch(show)}" target="_blank" rel="noopener">${show.tickets ? "Get tickets" : "Search tickets"}</a>
-    <a class="btn" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${show.lat},${show.lng}" target="_blank" rel="noopener">Street View of the venue</a>
     <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Google Calendar</a>
+    <a class="btn" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${show.lat},${show.lng}" target="_blank" rel="noopener">Street View of the venue</a>
     <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${show.lat},${show.lng}" target="_blank" rel="noopener">Directions to venue</a>
     <p class="hint">Dates refresh from Bandsintown every time this page loads, so new announcements appear and cancellations drop off automatically. Always confirm against <a href="https://eggymusic.com/tour/" target="_blank" rel="noopener">eggymusic.com/tour</a> before booking travel.</p>`;
 
