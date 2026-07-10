@@ -208,8 +208,8 @@
       overflow:hidden;   /* #shows is the one and only scroller */
     }
     #sidebar.up{transform:translateY(0)}
-    /* collapsed sheet: the list must not scroll behind the peek window */
-    #sidebar:not(.up) #shows{overflow:hidden}
+    /* collapsed sheet: the list must not scroll or eat taps behind the peek */
+    #sidebar:not(.up) #shows{overflow:hidden;pointer-events:none}
     #shows{
       overscroll-behavior:contain;      /* scroll stays in the list */
       -webkit-overflow-scrolling:touch;
@@ -763,19 +763,30 @@ document.querySelector("header").addEventListener("click", (e)=>{
 (function(){
   const sb = document.getElementById("sidebar");
   const list = document.getElementById("shows");
+  const mobile = () => window.innerWidth <= 820;
   let startY = null;
   sb.addEventListener("touchstart", e=>{ startY = e.touches[0].clientY; }, {passive:true});
   sb.addEventListener("touchmove", e=>{
-    if(startY === null) return;
+    if(!mobile() || startY === null) return;
     const dy = e.touches[0].clientY - startY;
-    if(!sb.classList.contains("up") && dy < -15){
-      sb.classList.add("up"); startY = null;
-    } else if(sb.classList.contains("up") && dy > 45 && list.scrollTop <= 0){
+    if(!sb.classList.contains("up")){
+      e.preventDefault();               /* nothing inside may scroll while collapsed */
+      if(dy < -15){ sb.classList.add("up"); startY = null; }
+    } else if(dy > 45 && list.scrollTop <= 0){
       sb.classList.remove("up"); startY = null;
     }
-  }, {passive:true});
+  }, {passive:false});
   sb.addEventListener("touchend", ()=>{ startY = null; }, {passive:true});
+  /* any tap on the collapsed sheet expands it */
+  sb.addEventListener("click", ()=>{
+    if(mobile() && !sb.classList.contains("up")) sb.classList.add("up");
+  });
 })();
+
+/* Version marker: confirm what's actually deployed (mobile caches lie) */
+const BUILD = "v10";
+document.querySelector(".sub").textContent += " · " + BUILD;
+console.log("Ambassadors build " + BUILD);
 
 loadShows();
 
