@@ -71,6 +71,8 @@
   }
   .show:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(59,46,30,.10)}
   .show.active{border-color:var(--yolk);box-shadow:0 0 0 2px rgba(245,166,35,.35)}
+  .show.past{opacity:.6}
+  .show.past .date-chip .mon{color:var(--ink-soft)}
   .show:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
   .date-chip{
     flex:0 0 52px;text-align:center;background:var(--shell);
@@ -94,6 +96,9 @@
     content:"";flex:0 0 26px;border-top:2px dashed #D9CDBA;
   }
   .leg .mi{color:var(--yolk-deep)}
+  .leg a{color:var(--yolk-deep);text-decoration:none;border-bottom:1px dotted var(--yolk-deep)}
+  .leg a:hover{border-bottom-style:solid}
+  .leg a:focus-visible{outline:3px solid var(--yolk)}
   .empty-note{padding:20px;text-align:center;color:var(--ink-soft);font-size:.85rem}
 
   /* ---------- Detail drawer ---------- */
@@ -310,14 +315,32 @@ cartoLayer.on("tileerror", ()=>{
 });
 
 /* Egg "hatches" as the show gets closer:
-   tier 0 = this week (cracked open, pulsing)
-   tier 1 = this month (big crack)
-   tier 2 = next 3 months (hairline crack)
-   tier 3 = later (smooth, muted) */
+   tier 0 = this week / happening now (big crack, pulsing)
+   tier 1 = this month, tier 2 = next 3 months, tier 3 = later
+   tier 4 = played (hatched chick, lingers for 30 days after the show) */
+const todayStr = () => new Date().toISOString().slice(0,10);
 const daysUntil = d => Math.ceil((new Date(d+"T12:00:00") - new Date()) / 86400000);
-const tierOf = d => { const n = daysUntil(d); return n<=7 ? 0 : n<=30 ? 1 : n<=90 ? 2 : 3; };
+const isPast = show => (show.endDate || show.date) < todayStr();
+const tierOf = show => {
+  if(isPast(show)) return 4;
+  const n = daysUntil(show.date);
+  return n<=7 ? 0 : n<=30 ? 1 : n<=90 ? 2 : 3;
+};
 
 const eggSVG = (tier)=>{
+  if(tier===4){
+    /* hatched: chick sitting in the cracked bottom shell */
+    return `
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <circle cx="17" cy="15" r="8.5" fill="#FFD23F" stroke="#3B2E1E" stroke-width="2"/>
+  <circle cx="14" cy="13.5" r="1.2" fill="#3B2E1E"/>
+  <circle cx="20" cy="13.5" r="1.2" fill="#3B2E1E"/>
+  <path d="M17 15.5 L14.8 18.5 L19.2 18.5 Z" fill="#E08A00" stroke="#3B2E1E" stroke-width="0.8"/>
+  <path d="M2 25.5 C2 34.6 8.7 41 17 41 C25.3 41 32 34.6 32 25.5 L32 23.5 L28 20 L24 24 L20 20 L16 24 L12 20 L8 24 L4 20 L2 23.5 Z"
+        fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"/>
+</svg>`;
+  }
   const shell = tier===3 ? "#F1E9D8" : "#FDF8EF";
   const stroke = tier===3 ? "#8A7A62" : "#3B2E1E";
   const cracks = [
@@ -377,6 +400,7 @@ function lodgingLinks(show){
   };
 }
 const ticketSearch = show => `https://www.google.com/search?q=${encodeURIComponent("Eggy tickets "+show.venue+" "+show.city+" "+show.date)}`;
+const legDirections = (a,b) => `https://www.google.com/maps/dir/?api=1&origin=${a.lat},${a.lng}&destination=${b.lat},${b.lng}`;
 const calLink = show => {
   const s = show.date.replace(/-/g,"");
   const e = addDays(show.endDate || show.date,1).replace(/-/g,"");
@@ -395,7 +419,8 @@ let activeIdx = null;
              3) embedded fallback list */
 async function loadShows(){
   const badge = document.getElementById("datasource");
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayStr();
+  const cutoff = new Date(Date.now() - 30*86400000).toISOString().slice(0,10);
 
   /* 1) Repo mirror */
   try{
@@ -403,7 +428,7 @@ async function loadShows(){
     if(!r.ok) throw new Error("HTTP "+r.status);
     const data = await r.json();
     if(!data.shows || !data.shows.length) throw new Error("empty mirror");
-    SHOWS = data.shows.filter(s => s.date >= today);
+    SHOWS = data.shows.filter(s => (s.endDate || s.date) >= cutoff);
     const upd = new Date(data.updated).toLocaleDateString("en-US",{month:"short",day:"numeric"});
     badge.textContent = "auto-updated " + upd;
     badge.classList.add("live");
@@ -437,7 +462,7 @@ async function loadShows(){
   }catch(err){
     console.warn("Bandsintown fetch failed (ad blocker or web filter likely):", err);
     /* 3) Embedded fallback */
-    SHOWS = FALLBACK.filter(s => s.date >= today);
+    SHOWS = FALLBACK.filter(s => (s.endDate || s.date) >= cutoff);
     badge.textContent = "cached dates · check eggymusic.com/tour";
   }
   render();
@@ -457,9 +482,10 @@ function render(){
 
   const bounds = [];
   SHOWS.forEach((show,i)=>{
+    const tier = tierOf(show);
     const chip = fmtChip(show.date);
     const el = document.createElement("div");
-    el.className = "show";
+    el.className = "show" + (tier===4 ? " past" : "");
     el.setAttribute("role","listitem");
     el.setAttribute("tabindex","0");
     el.innerHTML = `
@@ -467,35 +493,41 @@ function render(){
       <div class="meta">
         <div class="venue">${esc(show.venue)}</div>
         <div class="city">${esc(show.city)}, ${esc(show.state)}</div>
-        ${show.festival ? '<span class="fest">Festival run</span>' : ''}
+        ${tier===4 ? '<span class="fest">Hatched</span>' : show.festival ? '<span class="fest">Festival run</span>' : ''}
       </div>`;
     el.addEventListener("click", ()=>select(i,true));
     el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();select(i,true);} });
     list.appendChild(el);
 
     /* Leg row to the next show — only when it's a drivable run
-       (next show within 2 days). Filled with straight-line estimate,
-       upgraded to real driving distance when OSRM responds. */
+       (next show within 2 days) and neither show has already happened. */
     if(i < SHOWS.length-1){
       const next = SHOWS[i+1];
       const gapDays = (new Date(next.date) - new Date(show.endDate || show.date)) / 86400000;
-      if(gapDays <= 2){
+      if(gapDays <= 2 && !isPast(show) && !isPast(next)){
         const direct = haversineMi(show, next);
         const leg = document.createElement("div");
         leg.className = "leg";
         leg.id = "leg-"+i;
         leg.innerHTML = direct < 1
           ? `same spot as last show`
-          : `↓ <span class="mi">~${Math.round(direct)} mi</span> direct`;
+          : `↓ <span class="mi">~${Math.round(direct)} mi</span> direct · <a href="${legDirections(show, next)}" target="_blank" rel="noopener">Maps</a>`;
         list.appendChild(leg);
       }
     }
 
-    const m = L.marker([show.lat, show.lng], {icon:eggIcon(tierOf(show.date)), title:`${show.venue} — ${show.date}`}).addTo(map);
+    const m = L.marker([show.lat, show.lng], {icon:eggIcon(tier), title:`${show.venue} — ${show.date}`}).addTo(map);
     m.on("click", ()=>select(i,false));
     markers.push(m);
     bounds.push([show.lat, show.lng]);
   });
+
+  /* start the list at the first upcoming show, past chicks scrolled above */
+  const firstUpcoming = SHOWS.findIndex(s => !isPast(s));
+  if(firstUpcoming > 0){
+    const card = list.querySelectorAll(".show")[firstUpcoming];
+    if(card) list.scrollTop = card.offsetTop - list.offsetTop;
+  }
 
   if(bounds.length) map.fitBounds(bounds, {padding:[50,50]});
   buildRoute();
@@ -532,8 +564,8 @@ function addArrows(latlngs){
     L.marker([(p[0]+q[0])/2, (p[1]+q[1])/2], {
       icon: L.divIcon({
         className:"route-arrow",
-        html:`<svg width="20" height="20" viewBox="0 0 14 14" style="transform:rotate(${brg}deg)" aria-hidden="true"><path d="M7 1 L12 11.5 L7 9 L2 11.5 Z" fill="#E08A00" opacity="0.9"/></svg>`,
-        iconSize:[20,20], iconAnchor:[10,10]
+        html:`<svg width="26" height="26" viewBox="0 0 14 14" style="transform:rotate(${brg}deg)" aria-hidden="true"><path d="M7 1 L12 11.5 L7 9 L2 11.5 Z" fill="#E08A00" opacity="0.9"/></svg>`,
+        iconSize:[26,26], iconAnchor:[13,13]
       }),
       interactive:false, keyboard:false
     }).addTo(routeLayer);
@@ -548,7 +580,7 @@ function drivableRuns(){
   let run = [0];
   for(let i=0;i<SHOWS.length-1;i++){
     const gapDays = (new Date(SHOWS[i+1].date) - new Date(SHOWS[i].endDate || SHOWS[i].date)) / 86400000;
-    if(gapDays <= 2){ run.push(i+1); }
+    if(gapDays <= 2 && !isPast(SHOWS[i]) && !isPast(SHOWS[i+1])){ run.push(i+1); }
     else { if(run.length>1) runs.push(run); run=[i+1]; }
   }
   if(run.length>1) runs.push(run);
@@ -580,7 +612,7 @@ async function buildRoute(){
         const mi = leg.distance/1609.34;
         el.innerHTML = mi < 1
           ? `same spot as last show`
-          : `🚗 <span class="mi">${Math.round(mi)} mi</span> · ${fmtDur(leg.duration)}`;
+          : `🚗 <span class="mi">${Math.round(mi)} mi</span> · ${fmtDur(leg.duration)} · <a href="${legDirections(SHOWS[run[j]], SHOWS[run[j+1]])}" target="_blank" rel="noopener">Maps</a>`;
       });
     }catch(err){
       console.warn("OSRM routing unreachable — straight lines for this run:", err);
@@ -600,7 +632,7 @@ function select(i, fly){
   activeIdx = i;
   const show = SHOWS[i];
   document.querySelectorAll(".show").forEach((el,j)=>el.classList.toggle("active", j===i));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j].date), j===i)));
+  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j]), j===i)));
   if(fly) map.flyTo([show.lat, show.lng], Math.max(map.getZoom(), 9), {duration:.7});
 
   document.getElementById("dWhen").textContent = fmtLong(show.date) + (show.endDate ? " – " + fmtLong(show.endDate) : "");
@@ -680,7 +712,7 @@ function renderCrew(show){
 document.getElementById("closeDrawer").addEventListener("click", ()=>{
   document.getElementById("drawer").classList.remove("open");
   document.querySelectorAll(".show").forEach(el=>el.classList.remove("active"));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j].date))));
+  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j]))));
   activeIdx = null;
 });
 document.querySelectorAll(".tab").forEach(tab=>{
@@ -699,7 +731,7 @@ loadShows();
 
 /* Legend: mini egg per tier */
 document.getElementById("legend").innerHTML = [
-  [0,"This week"],[1,"This month"],[2,"3 months"],[3,"Later"]
+  [0,"This week"],[1,"This month"],[2,"3 months"],[3,"Later"],[4,"Played"]
 ].map(([t,label])=>`<span class="li">${eggSVG(t).replace('width="34" height="44"','width="15" height="19"')} ${label}</span>`).join("");
 </script>
 </body>
