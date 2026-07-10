@@ -413,7 +413,7 @@ function lodgingLinks(show){
   };
 }
 const ticketSearch = show => `https://www.google.com/search?q=${encodeURIComponent("Eggy tickets "+show.venue+" "+show.city+" "+show.date)}`;
-const legDirections = (a,b) => `https://www.google.com/maps/dir/?api=1&origin=${a.lat},${a.lng}&destination=${b.lat},${b.lng}`;
+const legDirections = (a,b) => `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(a.venue+", "+a.city+", "+a.state)}&destination=${encodeURIComponent(b.venue+", "+b.city+", "+b.state)}`;
 const calLink = show => {
   const s = show.date.replace(/-/g,"");
   const e = addDays(show.endDate || show.date,1).replace(/-/g,"");
@@ -671,8 +671,8 @@ function select(i, fly){
     <div class="row"><div class="lbl">Venue</div><div class="val">${esc(show.venue)}<br><span style="font-weight:600;color:var(--ink-soft)">${esc(show.city)}, ${esc(show.state)}</span></div></div>
     <a class="btn primary" href="${show.tickets || ticketSearch(show)}" target="_blank" rel="noopener">${show.tickets ? "Get tickets" : "Search tickets"}</a>
     <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Google Calendar</a>
-    <a class="btn" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${show.lat},${show.lng}" target="_blank" rel="noopener">Street View of the venue</a>
-    <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${show.lat},${show.lng}" target="_blank" rel="noopener">Directions to venue</a>
+    <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Venue on Google Maps</a>
+    <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Directions to venue</a>
     <p class="hint">Dates refresh from Bandsintown every time this page loads, so new announcements appear and cancellations drop off automatically. Always confirm against <a href="https://eggymusic.com/tour/" target="_blank" rel="noopener">eggymusic.com/tour</a> before booking travel.</p>`;
 
   document.getElementById("pLodging").innerHTML = `
@@ -680,7 +680,10 @@ function select(i, fly){
     <a class="btn primary" href="${L2.airbnb}" target="_blank" rel="noopener">Airbnbs with these dates</a>
     <a class="btn" href="${L2.booking}" target="_blank" rel="noopener">Hotels on Booking.com</a>
     <a class="btn" href="${L2.hotelsNear}" target="_blank" rel="noopener">Hotels near the venue (map)</a>
-    <p class="hint">Links open searches already filtered to this show's night and city, so only available places show up. Set the group size once you're there — it defaults to 4 adults.</p>`;
+    <div class="row" style="margin-top:18px"><div class="lbl">Pre-show fuel</div></div>
+    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("pizza near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍕 Pizza near the venue</a>
+    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("burgers near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍔 Burgers near the venue</a>
+    <p class="hint">Lodging links open searches already filtered to this show's night and city, so only available places show up. Set the group size once you're there — it defaults to 4 adults.</p>`;
 
   renderCrew(show);
 
