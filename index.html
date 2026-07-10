@@ -34,7 +34,8 @@
   }
 
   /* ---------- Layout ---------- */
-  #app{display:grid;grid-template-columns:370px 1fr;height:100dvh}
+  #app{display:grid;grid-template-columns:370px 1fr;height:100%}
+  #mapwrap{position:relative;min-height:0;height:100%}
   #sidebar{
     background:var(--shell);
     border-right:1px solid var(--line);
@@ -197,15 +198,18 @@
   /* ---------- Mobile ---------- */
   #listToggle{display:none}
   @media (max-width:820px){
+    /* hard page-scroll lock: the page itself can never move */
+    html,body{position:fixed;inset:0;width:100%;overflow:hidden}
     #app{grid-template-columns:1fr}
     #sidebar{
-      position:absolute;left:0;right:0;bottom:0;top:auto;
-      height:72vh;height:72dvh;   /* vh fallback for browsers without dvh */
+      position:fixed;left:0;right:0;bottom:0;top:auto;
+      height:72vh;                     /* plain vh: works everywhere */
       border-right:none;
       border-top:1px solid var(--line);border-radius:18px 18px 0 0;
       transform:translateY(calc(100% - 150px));transition:transform .22s ease;
       box-shadow:0 -8px 30px rgba(59,46,30,.15);
-      overflow:hidden;   /* #shows is the one and only scroller */
+      overflow:hidden;                 /* #shows is the one and only scroller */
+      z-index:800;
     }
     #sidebar.up{transform:translateY(0)}
     /* collapsed sheet: the list must not scroll or eat taps behind the peek */
@@ -220,7 +224,7 @@
       border:none;margin:8px auto 0;cursor:pointer;
     }
     header{padding-top:6px;cursor:pointer}
-    #drawer{width:100%}
+    #drawer{width:100%;position:fixed;z-index:900}
   }
   @media (prefers-reduced-motion:reduce){
     *{transition:none !important;animation:none !important}
@@ -247,7 +251,7 @@
     <div id="shows" role="list"></div>
   </aside>
 
-  <div style="position:relative;min-height:0">
+  <div id="mapwrap">
     <div id="map"></div>
 
     <section id="drawer" aria-label="Show details">
@@ -784,9 +788,15 @@ document.querySelector("header").addEventListener("click", (e)=>{
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v10";
+const BUILD = "v11";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
+
+/* Leaflet must re-measure its container whenever geometry settles or changes,
+   otherwise it renders a degenerate world-view strip */
+setTimeout(()=>{ map.invalidateSize(); if(markers.length) map.fitBounds(markers.map(m=>m.getLatLng()), {padding:[50,50]}); }, 400);
+window.addEventListener("resize", ()=>map.invalidateSize());
+window.addEventListener("orientationchange", ()=>setTimeout(()=>map.invalidateSize(), 250));
 
 loadShows();
 
