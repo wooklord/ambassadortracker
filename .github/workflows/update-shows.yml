@@ -15,75 +15,124 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch shows from Bandsintown
+      - name: Fetch shows from JamBase
         run: |
           cat > fetch-shows.mjs <<'EOF'
-          import { writeFileSync } from "fs";
+          import { writeFileSync, readFileSync, existsSync } from "fs";
 
-          const PAGE = "https://www.bandsintown.com/a/2356753-eggy";
+          const PAGE = "https://www.jambase.com/band/eggy";
+          const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
-          const r = await fetch(PAGE, {
-            headers: {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
-              "Accept": "text/html"
-            }
-          });
+          const r = await fetch(PAGE, { headers: { "User-Agent": UA, "Accept": "text/html" } });
           if (!r.ok) {
-            console.error("Page responded HTTP " + r.status);
-            throw new Error("Bandsintown page HTTP " + r.status);
+            console.error("JamBase responded HTTP " + r.status);
+            throw new Error("JamBase page HTTP " + r.status);
           }
           const html = await r.text();
 
-          /* Bandsintown embeds the full schedule as schema.org JSON-LD */
-          const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+          /* ---- collect schema.org event nodes from JSON-LD blocks ---- */
+          const blocks = [...html.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)];
           console.log("Found " + blocks.length + " JSON-LD block(s)");
 
           const events = [];
+          const collect = (node) => {
+            if (!node || typeof node !== "object") return;
+            if (Array.isArray(node)) { node.forEach(collect); return; }
+            const t = [].concat(node["@type"] || []);
+            if (t.some(x => /Event/i.test(x))) events.push(node);
+            if (node["@graph"]) collect(node["@graph"]);
+          };
           for (const b of blocks) {
-            try {
-              const data = JSON.parse(b[1]);
-              const items = Array.isArray(data) ? data : [data];
-              for (const item of items) {
-                const t = [].concat(item["@type"] || []);
-                if (t.includes("MusicEvent") || t.includes("Event")) events.push(item);
-              }
-            } catch { /* skip unparseable blocks */ }
+            try { collect(JSON.parse(b[1].trim())); } catch { /* skip */ }
           }
-          console.log("Parsed " + events.length + " event entries");
+          console.log("Parsed " + events.length + " event node(s)");
 
-          const shows = events
-            .filter(e => e.startDate && e.location && e.location.geo &&
-                         e.location.geo.latitude != null && e.location.geo.longitude != null)
-            .map(e => ({
-              date: String(e.startDate).slice(0, 10),
-              venue: e.location.name || (e.name || "TBA"),
-              city: (e.location.address && e.location.address.addressLocality) || "",
-              state: (e.location.address && (e.location.address.addressRegion || e.location.address.addressCountry)) || "",
-              lat: parseFloat(e.location.geo.latitude),
-              lng: parseFloat(e.location.geo.longitude),
+          if (events.length === 0) {
+            /* diagnostic dump so the log tells us what schema IS present */
+            for (const b of blocks.slice(0, 10)) {
+              try {
+                const d = JSON.parse(b[1].trim());
+                const types = d["@graph"] ? d["@graph"].map(x => x["@type"]) : [d["@type"]];
+                console.log("Block types: " + JSON.stringify(types).slice(0, 300));
+              } catch { console.log("Unparseable JSON-LD block"); }
+            }
+            throw new Error("No event data found — page structure may have changed. Not overwriting shows.json.");
+          }
+
+          /* ---- coordinate cache from the previous shows.json ---- */
+          const prevCoords = {};
+          if (existsSync("shows.json")) {
+            try {
+              for (const s of JSON.parse(readFileSync("shows.json", "utf8")).shows) {
+                prevCoords[(s.city + "," + s.state).toLowerCase()] = [s.lat, s.lng];
+              }
+            } catch { /* start fresh */ }
+          }
+
+          /* ---- polite Nominatim geocoding for new cities ---- */
+          const sleep = ms => new Promise(res => setTimeout(res, ms));
+          async function geocode(q) {
+            await sleep(1200);   // Nominatim usage policy: max 1 req/sec
+            const g = await fetch(
+              "https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=" + encodeURIComponent(q),
+              { headers: { "User-Agent": "ambassadors-eggy-tour-map/1.0 (GitHub Action)" } }
+            );
+            if (!g.ok) { console.warn("Geocode HTTP " + g.status + " for " + q); return null; }
+            const j = await g.json();
+            return j[0] ? [parseFloat(j[0].lat), parseFloat(j[0].lon)] : null;
+          }
+
+          const shows = [];
+          for (const e of events) {
+            const date = String(e.startDate || "").slice(0, 10);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+            const loc = e.location || {};
+            const addr = loc.address || {};
+            const city = addr.addressLocality || "";
+            const state = addr.addressRegion || addr.addressCountry || "";
+
+            let lat = loc.geo && loc.geo.latitude;
+            let lng = loc.geo && loc.geo.longitude;
+            if (lat == null || lng == null) {
+              const key = (city + "," + state).toLowerCase();
+              if (prevCoords[key]) {
+                [lat, lng] = prevCoords[key];
+              } else if (city) {
+                const gc = await geocode(city + ", " + state + ", USA");
+                if (gc) { [lat, lng] = gc; prevCoords[key] = gc; console.log("Geocoded " + city + ", " + state); }
+              }
+            }
+            if (lat == null || lng == null) { console.warn("Skipping (no coords): " + date + " " + city); continue; }
+
+            const endDate = e.endDate ? String(e.endDate).slice(0, 10) : null;
+            shows.push({
+              date,
+              ...(endDate && endDate !== date ? { endDate } : {}),
+              venue: loc.name || e.name || "TBA",
+              city, state,
+              lat: parseFloat(lat), lng: parseFloat(lng),
               tickets: (e.offers && [].concat(e.offers)[0] && [].concat(e.offers)[0].url) || e.url || null,
-              festival: /festival|fest|forest|hulaween|jam\b/i.test((e.name || "") + " " + (e.location.name || ""))
-            }));
+              festival: /festival|fest\b|hulaween|campout|forest|on the ocean/i.test((e.name || "") + " " + (loc.name || ""))
+            });
+          }
 
-          /* dedupe (same date + venue) and sort chronologically */
+          /* dedupe + sort */
           const seen = new Set();
           const unique = shows.filter(s => {
             const k = s.date + "|" + s.venue;
             if (seen.has(k)) return false;
-            seen.add(k);
-            return true;
+            seen.add(k); return true;
           }).sort((a, b) => a.date.localeCompare(b.date));
 
           if (unique.length === 0) {
-            throw new Error("Parsed 0 shows — page structure may have changed. Not overwriting shows.json.");
+            throw new Error("Parsed 0 usable shows — not overwriting shows.json.");
           }
 
           writeFileSync("shows.json", JSON.stringify({
             updated: new Date().toISOString(),
-            source: "bandsintown-page",
+            source: "jambase",
             shows: unique
           }, null, 2));
-
           console.log("Wrote " + unique.length + " shows to shows.json");
           EOF
           node fetch-shows.mjs
