@@ -208,6 +208,8 @@
       overflow:hidden;   /* #shows is the one and only scroller */
     }
     #sidebar.up{transform:translateY(0)}
+    /* collapsed sheet: the list must not scroll behind the peek window */
+    #sidebar:not(.up) #shows{overflow:hidden}
     #shows{
       overscroll-behavior:contain;      /* scroll stays in the list */
       -webkit-overflow-scrolling:touch;
@@ -751,6 +753,26 @@ document.querySelector("header").addEventListener("click", (e)=>{
     document.getElementById("sidebar").classList.toggle("up");
   }
 });
+
+/* Bottom-sheet swipe gestures (mobile):
+   collapsed + swipe up  -> expand
+   expanded  + swipe down while list is at the top -> collapse */
+(function(){
+  const sb = document.getElementById("sidebar");
+  const list = document.getElementById("shows");
+  let startY = null;
+  sb.addEventListener("touchstart", e=>{ startY = e.touches[0].clientY; }, {passive:true});
+  sb.addEventListener("touchmove", e=>{
+    if(startY === null) return;
+    const dy = e.touches[0].clientY - startY;
+    if(!sb.classList.contains("up") && dy < -15){
+      sb.classList.add("up"); startY = null;
+    } else if(sb.classList.contains("up") && dy > 45 && list.scrollTop <= 0){
+      sb.classList.remove("up"); startY = null;
+    }
+  }, {passive:true});
+  sb.addEventListener("touchend", ()=>{ startY = null; }, {passive:true});
+})();
 
 loadShows();
 
