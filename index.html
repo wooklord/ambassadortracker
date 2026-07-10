@@ -532,8 +532,8 @@ function addArrows(latlngs){
     L.marker([(p[0]+q[0])/2, (p[1]+q[1])/2], {
       icon: L.divIcon({
         className:"route-arrow",
-        html:`<svg width="13" height="13" viewBox="0 0 14 14" style="transform:rotate(${brg}deg)" aria-hidden="true"><path d="M7 1 L12 11.5 L7 9 L2 11.5 Z" fill="#E08A00" opacity="0.9"/></svg>`,
-        iconSize:[13,13], iconAnchor:[6.5,6.5]
+        html:`<svg width="20" height="20" viewBox="0 0 14 14" style="transform:rotate(${brg}deg)" aria-hidden="true"><path d="M7 1 L12 11.5 L7 9 L2 11.5 Z" fill="#E08A00" opacity="0.9"/></svg>`,
+        iconSize:[20,20], iconAnchor:[10,10]
       }),
       interactive:false, keyboard:false
     }).addTo(routeLayer);
