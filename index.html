@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<!-- saved from url=(0049)file:///C:/Users/kmckinley/Downloads/index_1.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eggy Tour Map</title>
+<link rel="stylesheet" href="./Eggy Tour Map_files/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="./Eggy Tour Map_files/css2" rel="stylesheet">
+<style>
+  :root{
+    --yolk:#F5A623;
+    --yolk-deep:#E08A00;
+    --shell:#FDF8EF;
+    --ink:#3B2E1E;
+    --ink-soft:#7A6A54;
+    --line:#E8DCC8;
+    --going:#2E7D6E;
+    --tomato:#E4572E;
+    --card:#FFFFFF;
+    --radius:14px;
+    --font-display:"Fraunces", Georgia, serif;
+    --font-body:"Nunito Sans", system-ui, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--font-body);
+    color:var(--ink);
+    background:var(--shell);
+    overflow:hidden;
+  }
+
+  /* ---------- Layout ---------- */
+  #app{display:grid;grid-template-columns:370px 1fr;height:100dvh}
+  #sidebar{
+    background:var(--shell);
+    border-right:1px solid var(--line);
+    display:flex;flex-direction:column;
+    min-height:0;
+    z-index:500;
+  }
+  #map{height:100%;width:100%;background:#EAE3D2}
+
+  /* ---------- Header ---------- */
+  header{padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+  header h1{
+    font-family:var(--font-display);
+    font-weight:800;font-size:1.7rem;letter-spacing:-.02em;line-height:1.05;
+  }
+  header h1 .egg{color:var(--yolk-deep)}
+  header .sub{margin-top:4px;font-size:.8rem;color:var(--ink-soft);font-weight:600}
+  #datasource{
+    display:inline-block;margin-top:8px;font-size:.68rem;font-weight:800;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);
+    background:#F3EAD8;border:1px solid var(--line);border-radius:999px;padding:3px 10px;
+  }
+  #datasource.live{color:var(--going);border-color:#BFDCD5;background:#E8F3F0}
+
+  /* ---------- Show list ---------- */
+  #shows{flex:1;overflow-y:auto;padding:10px 12px 24px;min-height:0}
+  .show{
+    display:flex;gap:12px;align-items:center;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:11px 13px;margin-bottom:9px;cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  }
+  .show:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(59,46,30,.10)}
+  .show.active{border-color:var(--yolk);box-shadow:0 0 0 2px rgba(245,166,35,.35)}
+  .show:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
+  .date-chip{
+    flex:0 0 52px;text-align:center;background:var(--shell);
+    border:1px solid var(--line);border-radius:10px;padding:6px 2px;
+  }
+  .date-chip .mon{display:block;font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--tomato)}
+  .date-chip .day{display:block;font-family:var(--font-display);font-weight:800;font-size:1.25rem;line-height:1.1}
+  .show .meta{min-width:0}
+  .show .venue{font-weight:800;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .show .city{font-size:.78rem;color:var(--ink-soft);font-weight:600}
+  .show .fest{
+    display:inline-block;margin-top:3px;font-size:.62rem;font-weight:800;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--yolk-deep);background:#FCEFD4;border-radius:6px;padding:2px 7px;
+  }
+  .empty-note{padding:20px;text-align:center;color:var(--ink-soft);font-size:.85rem}
+
+  /* ---------- Detail drawer ---------- */
+  #drawer{
+    position:absolute;top:0;right:0;height:100%;width:400px;max-width:100%;
+    background:var(--card);border-left:1px solid var(--line);
+    transform:translateX(105%);transition:transform .22s ease;
+    z-index:900;display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(59,46,30,.12);
+  }
+  #drawer.open{transform:translateX(0)}
+  #drawer .head{
+    padding:20px 20px 14px;border-bottom:3px solid var(--yolk);
+    background:linear-gradient(180deg,#FFF8EA, #FFFFFF);
+  }
+  #drawer .head .when{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tomato)}
+  #drawer .head h2{font-family:var(--font-display);font-weight:800;font-size:1.35rem;line-height:1.15;margin-top:4px}
+  #drawer .head .where{margin-top:4px;font-weight:700;color:var(--ink-soft);font-size:.88rem}
+  #closeDrawer{
+    position:absolute;top:12px;right:12px;border:1px solid var(--line);background:var(--shell);
+    width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer;color:var(--ink);
+    font-weight:800;line-height:1;
+  }
+  #closeDrawer:focus-visible{outline:3px solid var(--yolk)}
+
+  .tabs{display:flex;border-bottom:1px solid var(--line)}
+  .tab{
+    flex:1;padding:10px 0;background:none;border:none;cursor:pointer;
+    font-family:var(--font-body);font-weight:800;font-size:.78rem;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--ink-soft);border-bottom:3px solid transparent;
+  }
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--yolk)}
+  .tab:focus-visible{outline:3px solid var(--yolk);outline-offset:-3px}
+  .panel{flex:1;overflow-y:auto;padding:16px 20px 28px;display:none}
+  .panel.on{display:block}
+
+  .row{margin-bottom:14px}
+  .row .lbl{font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:3px}
+  .row .val{font-weight:700;font-size:.92rem}
+
+  .btn{
+    display:block;width:100%;text-align:center;text-decoration:none;
+    font-weight:800;font-size:.9rem;border-radius:12px;padding:12px;margin-bottom:10px;
+    border:1px solid var(--line);color:var(--ink);background:var(--shell);cursor:pointer;
+    font-family:var(--font-body);
+    transition:transform .1s ease;
+  }
+  .btn:hover{transform:translateY(-1px)}
+  .btn:focus-visible{outline:3px solid var(--yolk)}
+  .btn.primary{background:var(--yolk);border-color:var(--yolk-deep);color:#2B1F0E}
+  .btn.primary:hover{background:#FFB238}
+  .hint{font-size:.75rem;color:var(--ink-soft);line-height:1.45;margin-top:6px}
+
+  /* ---------- Crew tab ---------- */
+  .rsvp-btns{display:flex;gap:8px;margin-bottom:6px}
+  .rsvp{
+    flex:1;padding:10px 0;border-radius:12px;border:1px solid var(--line);
+    background:var(--shell);font-family:var(--font-body);font-weight:800;font-size:.82rem;cursor:pointer;color:var(--ink);
+  }
+  .rsvp:focus-visible{outline:3px solid var(--yolk)}
+  .rsvp.sel-going{background:var(--going);border-color:var(--going);color:#fff}
+  .rsvp.sel-maybe{background:var(--yolk);border-color:var(--yolk-deep);color:#2B1F0E}
+  .rsvp.sel-out{background:#D9CDBA;border-color:#C4B69F;color:var(--ink)}
+  textarea.note{
+    width:100%;border:1px solid var(--line);border-radius:12px;background:var(--shell);
+    font-family:var(--font-body);font-size:.85rem;color:var(--ink);padding:10px;resize:vertical;min-height:70px;
+  }
+  textarea.note:focus-visible{outline:3px solid var(--yolk)}
+  .phase2{
+    margin-top:16px;border:1px dashed var(--yolk-deep);border-radius:12px;background:#FFF6E3;
+    padding:12px;font-size:.78rem;line-height:1.5;color:var(--ink);
+  }
+  .phase2 b{color:var(--yolk-deep)}
+
+  /* ---------- Egg pin ---------- */
+  .egg-pin{filter:drop-shadow(0 2px 3px rgba(59,46,30,.35))}
+  .egg-pin svg{transition:transform .12s ease;transform-origin:50% 100%}
+  .egg-pin:hover svg,.egg-pin.hot svg{transform:scale(1.18)}
+
+  /* ---------- Mobile ---------- */
+  #listToggle{display:none}
+  @media (max-width:820px){
+    #app{grid-template-columns:1fr}
+    #sidebar{
+      position:absolute;inset:auto 0 0 0;height:62dvh;border-right:none;
+      border-top:1px solid var(--line);border-radius:18px 18px 0 0;
+      transform:translateY(calc(100% - 118px));transition:transform .22s ease;
+      box-shadow:0 -8px 30px rgba(59,46,30,.15);
+    }
+    #sidebar.up{transform:translateY(0)}
+    #listToggle{
+      display:block;width:44px;height:5px;border-radius:99px;background:#D9CDBA;
+      border:none;margin:8px auto 0;cursor:pointer;
+    }
+    header{padding-top:6px}
+    #drawer{width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <button id="listToggle" aria-label="Expand or collapse show list"></button>
+    <header>
+      <h1>Follow the <span class="egg">Yolk</span> Road</h1>
+      <div class="sub">Eggy tour map &amp; crew planner</div>
+      <span id="datasource">cached dates · check eggymusic.com/tour</span>
+    </header>
+    <div id="shows" role="list"><div class="show" role="listitem" tabindex="0">
+      <div class="date-chip"><span class="mon">Jul</span><span class="day">11</span></div>
+      <div class="meta">
+        <div class="venue">Levitt Pavilion for the Performing Arts</div>
+        <div class="city">Westport, CT</div>
+        
+      </div></div><div class="show" role="listitem" tabindex="0">
+      <div class="date-chip"><span class="mon">Jul</span><span class="day">15</span></div>
+      <div class="meta">
+        <div class="venue">24th Street Park (free show)</div>
+        <div class="city">Virginia Beach, VA</div>
+        
+      </div></div><div class="show" role="listitem" tabindex="0">
+      <div class="date-chip"><span class="mon">Jul</span><span class="day">23</span></div>
+      <div class="meta">
+        <div class="venue">Union Craft Brewing</div>
+        <div class="city">Baltimore, MD</div>
+        
+      </div></div><div class="show" role="listitem" tabindex="0">
+      <div class="date-chip"><span class="mon">Jul</span><span class="day">26</span></div>
+      <div class="meta">
+        <div class="venue">Lewes Ferry Grounds</div>
+        <div class="city">Lewes, DE</div>
+        
+      </div></div><div class="show" role="listitem" tabindex="0">
+      <div class="date-chip"><span class="mon">Jul</span><span class="day">31</span></div>
+      <div class="meta">
+        <div class="venue">Eggy — Boston Late Night (21+)</div>
+        <div class="city">Boston, MA</div>
+        
+      </div></div><div class="show" role="listitem" tabindex="0">
+      <div class="date-chip"><span class="mon">Aug</span><span class="day">1</span></div>
+      <div class="meta">
+        <div class="venue">Eggy — Boston Late Night (21+)</div>
+        <div class="city">Boston, MA</div>
+        
+      </div></div><div class="show" role="listitem" tabindex="0">
+      <div class="date-chip"><span class="mon">Oct</span><span class="day">16</span></div>
+      <div class="meta">
+        <div class="venue">TBA</div>
+        <div class="city">Cleveland, OH</div>
+        
+      </div></div><div class="show" role="listitem" tabindex="0">
+      <div class="date-chip"><span class="mon">Oct</span><span class="day">17</span></div>
+      <div class="meta">
+        <div class="venue">TBA</div>
+        <div class="city">Detroit, MI</div>
+        
+      </div></div><div class="show" role="listitem" tabindex="0">
+      <div class="date-chip"><span class="mon">Oct</span><span class="day">18</span></div>
+      <div class="meta">
+        <div class="venue">TBA</div>
+        <div class="city">Madison, WI</div>
+        
+      </div></div><div class="show" role="listitem" tabindex="0">
+      <div class="date-chip"><span class="mon">Oct</span><span class="day">22</span></div>
+      <div class="meta">
+        <div class="venue">Suwannee Hulaween</div>
+        <div class="city">Live Oak, FL</div>
+        <span class="fest">Festival run</span>
+      </div></div></div>
+  </aside>
+
+  <div style="position:relative;min-height:0">
+    <div id="map" class="leaflet-container leaflet-touch leaflet-fade-anim leaflet-grab leaflet-touch-drag leaflet-touch-zoom" tabindex="0" style="position: relative;"><div class="leaflet-pane leaflet-map-pane" style="transform: translate3d(0px, 0px, 0px);"><div class="leaflet-pane leaflet-tile-pane"><div class="leaflet-layer " style="z-index: 1; opacity: 1;"><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 18; transform: translate3d(-942px, -622px, 0px) scale(2);"></div><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 19; transform: translate3d(-942px, -622px, 0px) scale(1);"><img alt="" src="./Eggy Tour Map_files/24.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1524px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1524px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/24(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1268px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/24(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1780px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1268px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1780px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1524px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1524px, 1372px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1268px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1780px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1268px, 1372px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1780px, 1372px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/24(3).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1012px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/24(4).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2036px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25(3).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1012px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25(4).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2036px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23(3).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1012px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23(4).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2036px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26(3).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1012px, 1372px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26(4).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2036px, 1372px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/24(5).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(756px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/24(6).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2292px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25(5).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(756px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25(6).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2292px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23(5).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(756px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23(6).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2292px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26(5).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(756px, 1372px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26(6).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2292px, 1372px, 0px); opacity: 1;"></div></div></div><div class="leaflet-pane leaflet-overlay-pane"></div><div class="leaflet-pane leaflet-shadow-pane"></div><div class="leaflet-pane leaflet-marker-pane"><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="Levitt Pavilion for the Performing Arts — 2026-07-11" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(1083px, 228px, 0px); z-index: 228;">
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
+  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
+</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="24th Street Park (free show) — 2026-07-15" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(964px, 479px, 0px); z-index: 479;">
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
+  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
+</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="Union Craft Brewing — 2026-07-23" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(934px, 336px, 0px); z-index: 336;">
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
+  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
+</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="Lewes Ferry Grounds — 2026-07-26" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(1003px, 368px, 0px); z-index: 368;">
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
+  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
+</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="Eggy — Boston Late Night (21+) — 2026-07-31" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(1188px, 154px, 0px); z-index: 154;">
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
+  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
+</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="Eggy — Boston Late Night (21+) — 2026-08-01" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(1188px, 154px, 0px); z-index: 154;">
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
+  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
+</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="TBA — 2026-10-16" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(704px, 207px, 0px); z-index: 207;">
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
+  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
+</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="TBA — 2026-10-17" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(642px, 156px, 0px); z-index: 156;">
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
+  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
+</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="TBA — 2026-10-18" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(353px, 110px, 0px); z-index: 110;">
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
+  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
+</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="Suwannee Hulaween — 2026-10-22" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(645px, 838px, 0px); z-index: 838;">
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
+  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
+</svg></div></div><div class="leaflet-pane leaflet-tooltip-pane"></div><div class="leaflet-pane leaflet-popup-pane"></div><div class="leaflet-proxy leaflet-zoom-animated" style="transform: translate3d(4540.64px, 6379.92px, 0px) scale(32);"></div></div><div class="leaflet-control-container"><div class="leaflet-top leaflet-left"></div><div class="leaflet-top leaflet-right"></div><div class="leaflet-bottom leaflet-left"></div><div class="leaflet-bottom leaflet-right"><div class="leaflet-control-zoom leaflet-bar leaflet-control"><a class="leaflet-control-zoom-in" href="file:///C:/Users/kmckinley/Downloads/index_1.html#" title="Zoom in" role="button" aria-label="Zoom in" aria-disabled="false"><span aria-hidden="true">+</span></a><a class="leaflet-control-zoom-out" href="file:///C:/Users/kmckinley/Downloads/index_1.html#" title="Zoom out" role="button" aria-label="Zoom out" aria-disabled="false"><span aria-hidden="true">−</span></a></div><div class="leaflet-control-attribution leaflet-control"><a href="https://leafletjs.com/" title="A JavaScript library for interactive maps"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" class="leaflet-attribution-flag"><path fill="#4C7BE1" d="M0 0h12v4H0z"></path><path fill="#FFD500" d="M0 4h12v3H0z"></path><path fill="#E0BC00" d="M0 7h12v1H0z"></path></svg> Leaflet</a> <span aria-hidden="true">|</span> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a></div></div></div></div>
+
+    <section id="drawer" aria-label="Show details">
+      <div class="head">
+        <div class="when" id="dWhen"></div>
+        <h2 id="dVenue"></h2>
+        <div class="where" id="dCity"></div>
+        <button id="closeDrawer" aria-label="Close details">✕</button>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-panel="pShow">Show</button>
+        <button class="tab" role="tab" aria-selected="false" data-panel="pLodging">Lodging</button>
+        <button class="tab" role="tab" aria-selected="false" data-panel="pCrew">Crew</button>
+      </div>
+      <div class="panel on" id="pShow"></div>
+      <div class="panel" id="pLodging"></div>
+      <div class="panel" id="pCrew"></div>
+    </section>
+  </div>
+</div>
+
+<script src="./Eggy Tour Map_files/leaflet.min.js.download"></script>
+<script>
+/* =========================================================
+   Eggy Tour Map — Phase 1
+   - Live dates from Bandsintown public API (auto-updates,
+     cancellations drop off automatically on each page load)
+   - Fallback list below if the API is unreachable
+   - Lodging deep links pre-filled with each show's dates
+   - Crew tab: RSVP + notes saved on this device only
+     (Phase 2 swaps this for a shared Supabase backend)
+   ========================================================= */
+
+const BIT_ARTIST = "id_2356753";           // Eggy on Bandsintown
+const BIT_APP_ID = "eggy-crew-map";        // public API identifier (any string)
+
+/* ---- Fallback dates (edit freely; used only if the API call fails) ---- */
+const FALLBACK = [
+  {date:"2026-07-11", venue:"Levitt Pavilion for the Performing Arts", city:"Westport", state:"CT", lat:41.1415, lng:-73.3579},
+  {date:"2026-07-15", venue:"24th Street Park (free show)", city:"Virginia Beach", state:"VA", lat:36.8572, lng:-75.9766},
+  {date:"2026-07-23", venue:"Union Craft Brewing", city:"Baltimore", state:"MD", lat:39.3307, lng:-76.6447},
+  {date:"2026-07-26", venue:"Lewes Ferry Grounds", city:"Lewes", state:"DE", lat:38.7818, lng:-75.1177},
+  {date:"2026-07-31", venue:"Eggy — Boston Late Night (21+)", city:"Boston", state:"MA", lat:42.3601, lng:-71.0589},
+  {date:"2026-08-01", venue:"Eggy — Boston Late Night (21+)", city:"Boston", state:"MA", lat:42.3601, lng:-71.0589},
+  {date:"2026-10-16", venue:"TBA", city:"Cleveland", state:"OH", lat:41.4993, lng:-81.6944},
+  {date:"2026-10-17", venue:"TBA", city:"Detroit", state:"MI", lat:42.3314, lng:-83.0458},
+  {date:"2026-10-18", venue:"TBA", city:"Madison", state:"WI", lat:43.0731, lng:-89.4012},
+  {date:"2026-10-22", venue:"Suwannee Hulaween", city:"Live Oak", state:"FL", lat:30.2952, lng:-82.9840, festival:true, endDate:"2026-10-25"}
+];
+
+/* ---------- Map ---------- */
+const map = L.map("map", {zoomControl:false}).setView([39.5, -84], 5);
+L.control.zoom({position:"bottomright"}).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  maxZoom:19
+}).addTo(map);
+
+const eggSVG = (fill)=>`
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z"
+        fill="${fill}" stroke="#3B2E1E" stroke-width="2.2"/>
+  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"/>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"/>
+</svg>`;
+
+const eggIcon = (hot=false)=>L.divIcon({
+  className:"egg-pin"+(hot?" hot":""),
+  html:eggSVG("#FDF8EF"),
+  iconSize:[34,44], iconAnchor:[17,43], popupAnchor:[0,-40]
+});
+
+/* ---------- Helpers ---------- */
+const fmtLong = d => new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"long", month:"long", day:"numeric", year:"numeric"});
+const fmtChip = d => {
+  const dt = new Date(d+"T12:00:00");
+  return {mon:dt.toLocaleDateString("en-US",{month:"short"}), day:dt.getDate()};
+};
+const addDays = (d,n)=>{const dt=new Date(d+"T12:00:00");dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function lodgingLinks(show){
+  const checkin  = show.date;
+  const checkout = show.endDate ? addDays(show.endDate,1) : addDays(show.date,1);
+  const place = `${show.city}--${show.state}--United-States`;
+  return {
+    airbnb: `https://www.airbnb.com/s/${encodeURIComponent(place)}/homes?checkin=${checkin}&checkout=${checkout}&adults=4`,
+    booking:`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(show.city+", "+show.state)}&checkin=${checkin}&checkout=${checkout}&group_adults=4`,
+    hotelsNear:`https://www.google.com/maps/search/${encodeURIComponent("hotels near "+show.venue+" "+show.city+" "+show.state)}`
+  };
+}
+const ticketSearch = show => `https://www.google.com/search?q=${encodeURIComponent("Eggy tickets "+show.venue+" "+show.city+" "+show.date)}`;
+const calLink = show => {
+  const s = show.date.replace(/-/g,"");
+  const e = addDays(show.endDate || show.date,1).replace(/-/g,"");
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("Eggy — "+show.venue+", "+show.city)}&dates=${s}/${e}`;
+};
+
+/* ---------- State ---------- */
+let SHOWS = [];
+let markers = [];
+let activeIdx = null;
+
+/* ---------- Data loading ---------- */
+async function loadShows(){
+  const badge = document.getElementById("datasource");
+  try{
+    const r = await fetch(`https://rest.bandsintown.com/artists/${BIT_ARTIST}/events?app_id=${BIT_APP_ID}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const events = await r.json();
+    if(!Array.isArray(events) || events.length===0) throw new Error("empty");
+    SHOWS = events
+      .filter(e => e.venue && e.venue.latitude && e.venue.longitude)
+      .map(e => ({
+        date: e.datetime.slice(0,10),
+        venue: e.venue.name,
+        city: e.venue.city,
+        state: e.venue.region || e.venue.country,
+        lat: parseFloat(e.venue.latitude),
+        lng: parseFloat(e.venue.longitude),
+        tickets: (e.offers && e.offers[0] && e.offers[0].url) || e.url || null,
+        festival: /festival|fest|forest|hulaween|jam\b/i.test(e.title || e.venue.name)
+      }))
+      .sort((a,b)=>a.date.localeCompare(b.date));
+    badge.textContent = "live · bandsintown";
+    badge.classList.add("live");
+  }catch(err){
+    SHOWS = FALLBACK.filter(s => s.date >= new Date().toISOString().slice(0,10));
+    badge.textContent = "cached dates · check eggymusic.com/tour";
+  }
+  render();
+}
+
+/* ---------- Render ---------- */
+function render(){
+  const list = document.getElementById("shows");
+  list.innerHTML = "";
+  markers.forEach(m=>map.removeLayer(m));
+  markers = [];
+
+  if(SHOWS.length===0){
+    list.innerHTML = `<div class="empty-note">No upcoming shows found. Check <a href="https://eggymusic.com/tour/">eggymusic.com/tour</a>.</div>`;
+    return;
+  }
+
+  const bounds = [];
+  SHOWS.forEach((show,i)=>{
+    const chip = fmtChip(show.date);
+    const el = document.createElement("div");
+    el.className = "show";
+    el.setAttribute("role","listitem");
+    el.setAttribute("tabindex","0");
+    el.innerHTML = `
+      <div class="date-chip"><span class="mon">${chip.mon}</span><span class="day">${chip.day}</span></div>
+      <div class="meta">
+        <div class="venue">${esc(show.venue)}</div>
+        <div class="city">${esc(show.city)}, ${esc(show.state)}</div>
+        ${show.festival ? '<span class="fest">Festival run</span>' : ''}
+      </div>`;
+    el.addEventListener("click", ()=>select(i,true));
+    el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();select(i,true);} });
+    list.appendChild(el);
+
+    const m = L.marker([show.lat, show.lng], {icon:eggIcon(), title:`${show.venue} — ${show.date}`}).addTo(map);
+    m.on("click", ()=>select(i,false));
+    markers.push(m);
+    bounds.push([show.lat, show.lng]);
+  });
+
+  if(bounds.length) map.fitBounds(bounds, {padding:[50,50]});
+}
+
+/* ---------- Selection & drawer ---------- */
+function select(i, fly){
+  activeIdx = i;
+  const show = SHOWS[i];
+  document.querySelectorAll(".show").forEach((el,j)=>el.classList.toggle("active", j===i));
+  markers.forEach((m,j)=>m.setIcon(eggIcon(j===i)));
+  if(fly) map.flyTo([show.lat, show.lng], Math.max(map.getZoom(), 9), {duration:.7});
+
+  document.getElementById("dWhen").textContent = fmtLong(show.date) + (show.endDate ? " – " + fmtLong(show.endDate) : "");
+  document.getElementById("dVenue").textContent = show.venue;
+  document.getElementById("dCity").textContent = `${show.city}, ${show.state}`;
+
+  const L2 = lodgingLinks(show);
+
+  document.getElementById("pShow").innerHTML = `
+    <div class="row"><div class="lbl">Date</div><div class="val">${fmtLong(show.date)}${show.endDate ? " → "+fmtLong(show.endDate):""}</div></div>
+    <div class="row"><div class="lbl">Venue</div><div class="val">${esc(show.venue)}<br><span style="font-weight:600;color:var(--ink-soft)">${esc(show.city)}, ${esc(show.state)}</span></div></div>
+    <a class="btn primary" href="${show.tickets || ticketSearch(show)}" target="_blank" rel="noopener">${show.tickets ? "Get tickets" : "Search tickets"}</a>
+    <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Google Calendar</a>
+    <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${show.lat},${show.lng}" target="_blank" rel="noopener">Directions to venue</a>
+    <p class="hint">Dates refresh from Bandsintown every time this page loads, so new announcements appear and cancellations drop off automatically. Always confirm against <a href="https://eggymusic.com/tour/" target="_blank" rel="noopener">eggymusic.com/tour</a> before booking travel.</p>`;
+
+  document.getElementById("pLodging").innerHTML = `
+    <div class="row"><div class="lbl">Stay dates</div><div class="val">Check in ${fmtLong(show.date)} · check out ${fmtLong(show.endDate ? addDays(show.endDate,1) : addDays(show.date,1))}</div></div>
+    <a class="btn primary" href="${L2.airbnb}" target="_blank" rel="noopener">Airbnbs with these dates</a>
+    <a class="btn" href="${L2.booking}" target="_blank" rel="noopener">Hotels on Booking.com</a>
+    <a class="btn" href="${L2.hotelsNear}" target="_blank" rel="noopener">Hotels near the venue (map)</a>
+    <p class="hint">Links open searches already filtered to this show's night and city, so only available places show up. Set the group size once you're there — it defaults to 4 adults.</p>`;
+
+  renderCrew(show);
+
+  document.getElementById("drawer").classList.add("open");
+  if(window.innerWidth <= 820) document.getElementById("sidebar").classList.remove("up");
+}
+
+/* ---------- Crew tab (device-local until Phase 2) ---------- */
+function crewKey(show){ return "eggy-crew-" + show.date + "-" + show.city; }
+
+function renderCrew(show){
+  const saved = JSON.parse(localStorage.getItem(crewKey(show)) || "{}");
+  const p = document.getElementById("pCrew");
+  p.innerHTML = `
+    <div class="row"><div class="lbl">Your status</div>
+      <div class="rsvp-btns">
+        <button class="rsvp ${saved.rsvp==="going"?"sel-going":""}" data-v="going">Going</button>
+        <button class="rsvp ${saved.rsvp==="maybe"?"sel-maybe":""}" data-v="maybe">Maybe</button>
+        <button class="rsvp ${saved.rsvp==="out"?"sel-out":""}" data-v="out">Sitting out</button>
+      </div>
+    </div>
+    <div class="row"><div class="lbl">Lodging &amp; logistics note</div>
+      <textarea class="note" id="crewNote" placeholder="e.g. Booked 3-bed Airbnb near downtown, 2 spots open, arriving Friday noon">${esc(saved.note||"")}</textarea>
+      <button class="btn" id="saveNote" style="margin-top:8px">Save note</button>
+    </div>
+    <div class="phase2">
+      <b>Phase 2 — shared crew mode.</b> Right now your status and note save to this device only.
+      Next step wires this tab to a free Supabase backend so the whole crew sees each other's
+      RSVPs and lodging plans, plus a live chat thread per show.
+    </div>`;
+
+  p.querySelectorAll(".rsvp").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const cur = JSON.parse(localStorage.getItem(crewKey(show)) || "{}");
+      cur.rsvp = btn.dataset.v;
+      localStorage.setItem(crewKey(show), JSON.stringify(cur));
+      renderCrew(show);
+    });
+  });
+  p.querySelector("#saveNote").addEventListener("click", ()=>{
+    const cur = JSON.parse(localStorage.getItem(crewKey(show)) || "{}");
+    cur.note = p.querySelector("#crewNote").value;
+    localStorage.setItem(crewKey(show), JSON.stringify(cur));
+    p.querySelector("#saveNote").textContent = "Saved ✓";
+    setTimeout(()=>{ const b=p.querySelector("#saveNote"); if(b) b.textContent="Save note"; }, 1400);
+  });
+}
+
+/* ---------- Drawer chrome ---------- */
+document.getElementById("closeDrawer").addEventListener("click", ()=>{
+  document.getElementById("drawer").classList.remove("open");
+  document.querySelectorAll(".show").forEach(el=>el.classList.remove("active"));
+  markers.forEach(m=>m.setIcon(eggIcon()));
+  activeIdx = null;
+});
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected","false"));
+    tab.setAttribute("aria-selected","true");
+    document.querySelectorAll(".panel").forEach(pl=>pl.classList.remove("on"));
+    document.getElementById(tab.dataset.panel).classList.add("on");
+  });
+});
+document.getElementById("listToggle").addEventListener("click", ()=>{
+  document.getElementById("sidebar").classList.toggle("up");
+});
+
+loadShows();
+</script>
+
+
+</body></html>
