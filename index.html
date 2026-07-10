@@ -1,12 +1,13 @@
-<!DOCTYPE html>
-<!-- saved from url=(0049)file:///C:/Users/kmckinley/Downloads/index_1.html -->
-<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Eggy Tour Map</title>
-<link rel="stylesheet" href="./Eggy Tour Map_files/leaflet.min.css">
-<link rel="preconnect" href="https://fonts.googleapis.com/">
-<link href="./Eggy Tour Map_files/css2" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --yolk:#F5A623;
@@ -189,123 +190,13 @@
     <header>
       <h1>Follow the <span class="egg">Yolk</span> Road</h1>
       <div class="sub">Eggy tour map &amp; crew planner</div>
-      <span id="datasource">cached dates · check eggymusic.com/tour</span>
+      <span id="datasource">loading dates…</span>
     </header>
-    <div id="shows" role="list"><div class="show" role="listitem" tabindex="0">
-      <div class="date-chip"><span class="mon">Jul</span><span class="day">11</span></div>
-      <div class="meta">
-        <div class="venue">Levitt Pavilion for the Performing Arts</div>
-        <div class="city">Westport, CT</div>
-        
-      </div></div><div class="show" role="listitem" tabindex="0">
-      <div class="date-chip"><span class="mon">Jul</span><span class="day">15</span></div>
-      <div class="meta">
-        <div class="venue">24th Street Park (free show)</div>
-        <div class="city">Virginia Beach, VA</div>
-        
-      </div></div><div class="show" role="listitem" tabindex="0">
-      <div class="date-chip"><span class="mon">Jul</span><span class="day">23</span></div>
-      <div class="meta">
-        <div class="venue">Union Craft Brewing</div>
-        <div class="city">Baltimore, MD</div>
-        
-      </div></div><div class="show" role="listitem" tabindex="0">
-      <div class="date-chip"><span class="mon">Jul</span><span class="day">26</span></div>
-      <div class="meta">
-        <div class="venue">Lewes Ferry Grounds</div>
-        <div class="city">Lewes, DE</div>
-        
-      </div></div><div class="show" role="listitem" tabindex="0">
-      <div class="date-chip"><span class="mon">Jul</span><span class="day">31</span></div>
-      <div class="meta">
-        <div class="venue">Eggy — Boston Late Night (21+)</div>
-        <div class="city">Boston, MA</div>
-        
-      </div></div><div class="show" role="listitem" tabindex="0">
-      <div class="date-chip"><span class="mon">Aug</span><span class="day">1</span></div>
-      <div class="meta">
-        <div class="venue">Eggy — Boston Late Night (21+)</div>
-        <div class="city">Boston, MA</div>
-        
-      </div></div><div class="show" role="listitem" tabindex="0">
-      <div class="date-chip"><span class="mon">Oct</span><span class="day">16</span></div>
-      <div class="meta">
-        <div class="venue">TBA</div>
-        <div class="city">Cleveland, OH</div>
-        
-      </div></div><div class="show" role="listitem" tabindex="0">
-      <div class="date-chip"><span class="mon">Oct</span><span class="day">17</span></div>
-      <div class="meta">
-        <div class="venue">TBA</div>
-        <div class="city">Detroit, MI</div>
-        
-      </div></div><div class="show" role="listitem" tabindex="0">
-      <div class="date-chip"><span class="mon">Oct</span><span class="day">18</span></div>
-      <div class="meta">
-        <div class="venue">TBA</div>
-        <div class="city">Madison, WI</div>
-        
-      </div></div><div class="show" role="listitem" tabindex="0">
-      <div class="date-chip"><span class="mon">Oct</span><span class="day">22</span></div>
-      <div class="meta">
-        <div class="venue">Suwannee Hulaween</div>
-        <div class="city">Live Oak, FL</div>
-        <span class="fest">Festival run</span>
-      </div></div></div>
+    <div id="shows" role="list"></div>
   </aside>
 
   <div style="position:relative;min-height:0">
-    <div id="map" class="leaflet-container leaflet-touch leaflet-fade-anim leaflet-grab leaflet-touch-drag leaflet-touch-zoom" tabindex="0" style="position: relative;"><div class="leaflet-pane leaflet-map-pane" style="transform: translate3d(0px, 0px, 0px);"><div class="leaflet-pane leaflet-tile-pane"><div class="leaflet-layer " style="z-index: 1; opacity: 1;"><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 18; transform: translate3d(-942px, -622px, 0px) scale(2);"></div><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 19; transform: translate3d(-942px, -622px, 0px) scale(1);"><img alt="" src="./Eggy Tour Map_files/24.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1524px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1524px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/24(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1268px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/24(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1780px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1268px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1780px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1524px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1524px, 1372px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1268px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1780px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1268px, 1372px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1780px, 1372px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/24(3).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1012px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/24(4).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2036px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25(3).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1012px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25(4).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2036px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23(3).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1012px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23(4).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2036px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26(3).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1012px, 1372px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26(4).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2036px, 1372px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/24(5).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(756px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/24(6).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2292px, 860px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25(5).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(756px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/25(6).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2292px, 1116px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23(5).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(756px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/23(6).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2292px, 604px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26(5).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(756px, 1372px, 0px); opacity: 1;"><img alt="" src="./Eggy Tour Map_files/26(6).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(2292px, 1372px, 0px); opacity: 1;"></div></div></div><div class="leaflet-pane leaflet-overlay-pane"></div><div class="leaflet-pane leaflet-shadow-pane"></div><div class="leaflet-pane leaflet-marker-pane"><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="Levitt Pavilion for the Performing Arts — 2026-07-11" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(1083px, 228px, 0px); z-index: 228;">
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
-  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
-</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="24th Street Park (free show) — 2026-07-15" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(964px, 479px, 0px); z-index: 479;">
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
-  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
-</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="Union Craft Brewing — 2026-07-23" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(934px, 336px, 0px); z-index: 336;">
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
-  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
-</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="Lewes Ferry Grounds — 2026-07-26" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(1003px, 368px, 0px); z-index: 368;">
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
-  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
-</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="Eggy — Boston Late Night (21+) — 2026-07-31" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(1188px, 154px, 0px); z-index: 154;">
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
-  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
-</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="Eggy — Boston Late Night (21+) — 2026-08-01" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(1188px, 154px, 0px); z-index: 154;">
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
-  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
-</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="TBA — 2026-10-16" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(704px, 207px, 0px); z-index: 207;">
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
-  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
-</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="TBA — 2026-10-17" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(642px, 156px, 0px); z-index: 156;">
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
-  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
-</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="TBA — 2026-10-18" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(353px, 110px, 0px); z-index: 110;">
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
-  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
-</svg></div><div class="leaflet-marker-icon egg-pin leaflet-zoom-animated leaflet-interactive" title="Suwannee Hulaween — 2026-10-22" tabindex="0" role="button" style="margin-left: -17px; margin-top: -43px; width: 34px; height: 44px; transform: translate3d(645px, 838px, 0px); z-index: 838;">
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z" fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"></path>
-  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"></circle>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"></path>
-</svg></div></div><div class="leaflet-pane leaflet-tooltip-pane"></div><div class="leaflet-pane leaflet-popup-pane"></div><div class="leaflet-proxy leaflet-zoom-animated" style="transform: translate3d(4540.64px, 6379.92px, 0px) scale(32);"></div></div><div class="leaflet-control-container"><div class="leaflet-top leaflet-left"></div><div class="leaflet-top leaflet-right"></div><div class="leaflet-bottom leaflet-left"></div><div class="leaflet-bottom leaflet-right"><div class="leaflet-control-zoom leaflet-bar leaflet-control"><a class="leaflet-control-zoom-in" href="file:///C:/Users/kmckinley/Downloads/index_1.html#" title="Zoom in" role="button" aria-label="Zoom in" aria-disabled="false"><span aria-hidden="true">+</span></a><a class="leaflet-control-zoom-out" href="file:///C:/Users/kmckinley/Downloads/index_1.html#" title="Zoom out" role="button" aria-label="Zoom out" aria-disabled="false"><span aria-hidden="true">−</span></a></div><div class="leaflet-control-attribution leaflet-control"><a href="https://leafletjs.com/" title="A JavaScript library for interactive maps"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" class="leaflet-attribution-flag"><path fill="#4C7BE1" d="M0 0h12v4H0z"></path><path fill="#FFD500" d="M0 4h12v3H0z"></path><path fill="#E0BC00" d="M0 7h12v1H0z"></path></svg> Leaflet</a> <span aria-hidden="true">|</span> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a></div></div></div></div>
+    <div id="map"></div>
 
     <section id="drawer" aria-label="Show details">
       <div class="head">
@@ -326,7 +217,7 @@
   </div>
 </div>
 
-<script src="./Eggy Tour Map_files/leaflet.min.js.download"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 /* =========================================================
    Eggy Tour Map — Phase 1
@@ -358,10 +249,26 @@ const FALLBACK = [
 /* ---------- Map ---------- */
 const map = L.map("map", {zoomControl:false}).setView([39.5, -84], 5);
 L.control.zoom({position:"bottomright"}).addTo(map);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+/* Primary tiles: CARTO Voyager. If those are blocked (ad blocker /
+   web filter), fall back to openstreetmap.org automatically. */
+let tileErrors = 0, tilesSwapped = false;
+const osmFallback = () => L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom:19
+}).addTo(map);
+const cartoLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
   attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   maxZoom:19
 }).addTo(map);
+cartoLayer.on("tileerror", ()=>{
+  tileErrors++;
+  if(tileErrors >= 3 && !tilesSwapped){
+    tilesSwapped = true;
+    console.warn("CARTO tiles unreachable — switching to openstreetmap.org");
+    map.removeLayer(cartoLayer);
+    osmFallback();
+  }
+});
 
 const eggSVG = (fill)=>`
 <svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -432,6 +339,7 @@ async function loadShows(){
     badge.textContent = "live · bandsintown";
     badge.classList.add("live");
   }catch(err){
+    console.warn("Bandsintown fetch failed (ad blocker or web filter likely):", err);
     SHOWS = FALLBACK.filter(s => s.date >= new Date().toISOString().slice(0,10));
     badge.textContent = "cached dates · check eggymusic.com/tour";
   }
@@ -574,6 +482,5 @@ document.getElementById("listToggle").addEventListener("click", ()=>{
 
 loadShows();
 </script>
-
-
-</body></html>
+</body>
+</html>
