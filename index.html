@@ -383,9 +383,32 @@ let SHOWS = [];
 let markers = [];
 let activeIdx = null;
 
-/* ---------- Data loading ---------- */
+/* ---------- Data loading ----------
+   Priority: 1) shows.json mirrored into this repo by the GitHub Action
+                (same-origin — ad blockers and web filters can't touch it)
+             2) live Bandsintown API call
+             3) embedded fallback list */
 async function loadShows(){
   const badge = document.getElementById("datasource");
+  const today = new Date().toISOString().slice(0,10);
+
+  /* 1) Repo mirror */
+  try{
+    const r = await fetch("shows.json", {cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const data = await r.json();
+    if(!data.shows || !data.shows.length) throw new Error("empty mirror");
+    SHOWS = data.shows.filter(s => s.date >= today);
+    const upd = new Date(data.updated).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+    badge.textContent = "auto-updated " + upd;
+    badge.classList.add("live");
+    render();
+    return;
+  }catch(err){
+    console.warn("shows.json unavailable (Action not set up yet, or empty):", err.message);
+  }
+
+  /* 2) Live Bandsintown */
   try{
     const r = await fetch(`https://rest.bandsintown.com/artists/${BIT_ARTIST}/events?app_id=${BIT_APP_ID}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -408,7 +431,8 @@ async function loadShows(){
     badge.classList.add("live");
   }catch(err){
     console.warn("Bandsintown fetch failed (ad blocker or web filter likely):", err);
-    SHOWS = FALLBACK.filter(s => s.date >= new Date().toISOString().slice(0,10));
+    /* 3) Embedded fallback */
+    SHOWS = FALLBACK.filter(s => s.date >= today);
     badge.textContent = "cached dates · check eggymusic.com/tour";
   }
   render();
