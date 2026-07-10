@@ -1,0 +1,66 @@
+name: Update tour dates
+
+on:
+  schedule:
+    # every 6 hours (offset a few minutes to avoid the top-of-hour rush)
+    - cron: "17 */6 * * *"
+  workflow_dispatch: {}   # allows manual "Run workflow" button
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch shows from Bandsintown
+        run: |
+          cat > fetch-shows.mjs <<'EOF'
+          import { writeFileSync } from "fs";
+
+          const ARTIST = "id_2356753";           // Eggy
+          const APP_ID = "eggy-crew-map";
+
+          const r = await fetch(`https://rest.bandsintown.com/artists/${ARTIST}/events?app_id=${APP_ID}`);
+          if (!r.ok) throw new Error("Bandsintown HTTP " + r.status);
+          const events = await r.json();
+          if (!Array.isArray(events)) throw new Error("Unexpected payload: " + JSON.stringify(events).slice(0, 200));
+
+          const shows = events
+            .filter(e => e.venue && e.venue.latitude && e.venue.longitude)
+            .map(e => ({
+              date: e.datetime.slice(0, 10),
+              venue: e.venue.name,
+              city: e.venue.city,
+              state: e.venue.region || e.venue.country,
+              lat: parseFloat(e.venue.latitude),
+              lng: parseFloat(e.venue.longitude),
+              tickets: (e.offers && e.offers[0] && e.offers[0].url) || e.url || null,
+              festival: /festival|fest|forest|hulaween|jam\b/i.test((e.title || "") + " " + e.venue.name)
+            }))
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+          writeFileSync("shows.json", JSON.stringify({
+            updated: new Date().toISOString(),
+            source: "bandsintown",
+            shows
+          }, null, 2));
+
+          console.log("Wrote " + shows.length + " shows to shows.json");
+          EOF
+          node fetch-shows.mjs
+          rm fetch-shows.mjs
+
+      - name: Commit if changed
+        run: |
+          git config user.name "tour-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add shows.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Update tour dates"
+            git push
+          else
+            echo "No changes to tour dates."
+          fi
