@@ -362,10 +362,13 @@ const eggSVG = (tier)=>{
 </svg>`;
 };
 
-const eggIcon = (tier=3, hot=false)=>L.divIcon({
+const eggIcon = (tier=3, hot=false, stack=0)=>L.divIcon({
   className:"egg-pin"+(hot?" hot":"")+(tier===0?" soon":""),
   html:eggSVG(tier),
-  iconSize:[34,44], iconAnchor:[17,43], popupAnchor:[0,-40]
+  iconSize:[34,44],
+  /* shows at the same venue fan out up-and-right in screen space */
+  iconAnchor:[17 - stack*10, 43 + stack*8],
+  popupAnchor:[0,-40]
 });
 
 /* ---------- Helpers ---------- */
@@ -481,7 +484,11 @@ function render(){
   }
 
   const bounds = [];
+  const coordCount = {};
   SHOWS.forEach((show,i)=>{
+    const ck = show.lat.toFixed(5)+","+show.lng.toFixed(5);
+    show._stack = coordCount[ck] || 0;
+    coordCount[ck] = show._stack + 1;
     const tier = tierOf(show);
     const chip = fmtChip(show.date);
     const el = document.createElement("div");
@@ -516,7 +523,11 @@ function render(){
       }
     }
 
-    const m = L.marker([show.lat, show.lng], {icon:eggIcon(tier), title:`${show.venue} — ${show.date}`}).addTo(map);
+    const m = L.marker([show.lat, show.lng], {
+      icon:eggIcon(tier, false, show._stack),
+      title:`${show.venue} — ${show.date}`,
+      zIndexOffset: -show._stack * 100   /* later duplicates tuck behind */
+    }).addTo(map);
     m.on("click", ()=>select(i,false));
     markers.push(m);
     bounds.push([show.lat, show.lng]);
@@ -632,7 +643,7 @@ function select(i, fly){
   activeIdx = i;
   const show = SHOWS[i];
   document.querySelectorAll(".show").forEach((el,j)=>el.classList.toggle("active", j===i));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j]), j===i)));
+  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j]), j===i, SHOWS[j]._stack)));
   if(fly) map.flyTo([show.lat, show.lng], Math.max(map.getZoom(), 9), {duration:.7});
 
   document.getElementById("dWhen").textContent = fmtLong(show.date) + (show.endDate ? " – " + fmtLong(show.endDate) : "");
@@ -712,7 +723,7 @@ function renderCrew(show){
 document.getElementById("closeDrawer").addEventListener("click", ()=>{
   document.getElementById("drawer").classList.remove("open");
   document.querySelectorAll(".show").forEach(el=>el.classList.remove("active"));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j]))));
+  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j]), false, SHOWS[j]._stack)));
   activeIdx = null;
 });
 document.querySelectorAll(".tab").forEach(tab=>{
