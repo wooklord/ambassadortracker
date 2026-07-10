@@ -23,8 +23,18 @@ jobs:
           const ARTIST = "id_2356753";           // Eggy
           const APP_ID = "eggy-crew-map";
 
-          const r = await fetch(`https://rest.bandsintown.com/artists/${ARTIST}/events?app_id=${APP_ID}`);
-          if (!r.ok) throw new Error("Bandsintown HTTP " + r.status);
+          const r = await fetch(`https://rest.bandsintown.com/artists/${ARTIST}/events?app_id=${APP_ID}`, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+              "Accept": "application/json"
+            }
+          });
+          if (!r.ok) {
+            const body = await r.text();
+            console.error("Bandsintown responded HTTP " + r.status);
+            console.error("Response body: " + body.slice(0, 500));
+            throw new Error("Bandsintown HTTP " + r.status);
+          }
           const events = await r.json();
           if (!Array.isArray(events)) throw new Error("Unexpected payload: " + JSON.stringify(events).slice(0, 200));
 
