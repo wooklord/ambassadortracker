@@ -167,6 +167,10 @@
   }
   .phase2 b{color:var(--yolk-deep)}
 
+  /* ---------- Route arrows & venue photo ---------- */
+  .route-arrow{pointer-events:none}
+  #dPhoto img{width:100%;height:140px;object-fit:cover;display:block}
+
   /* ---------- Egg pin ---------- */
   .egg-pin{filter:drop-shadow(0 2px 3px rgba(59,46,30,.35))}
   .egg-pin svg{transition:transform .12s ease;transform-origin:50% 100%}
@@ -232,6 +236,7 @@
     <div id="map"></div>
 
     <section id="drawer" aria-label="Show details">
+      <div id="dPhoto"></div>
       <div class="head">
         <div class="when" id="dWhen"></div>
         <h2 id="dVenue"></h2>
@@ -496,7 +501,46 @@ function render(){
   buildRoute();
 }
 
-/* ---------- Tour route: driving directions for drivable runs only ----------
+/* Compass bearing (degrees) from point a to b, each [lat,lng] */
+function bearing(a, b){
+  const toR = x=>x*Math.PI/180;
+  const dLng = toR(b[1]-a[1]);
+  const y = Math.sin(dLng)*Math.cos(toR(b[0]));
+  const x = Math.cos(toR(a[0]))*Math.sin(toR(b[0])) - Math.sin(toR(a[0]))*Math.cos(toR(b[0]))*Math.cos(dLng);
+  return (Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+
+/* Place small direction chevrons at 25/50/75% along a route's geometry */
+function addArrows(latlngs){
+  if(latlngs.length < 2) return;
+  const cum = [0];
+  for(let i=1;i<latlngs.length;i++){
+    cum.push(cum[i-1] + haversineMi(
+      {lat:latlngs[i-1][0], lng:latlngs[i-1][1]},
+      {lat:latlngs[i][0],   lng:latlngs[i][1]}
+    ));
+  }
+  const total = cum[cum.length-1];
+  if(total === 0) return;
+
+  [0.25, 0.5, 0.75].forEach(f=>{
+    const target = total * f;
+    let i = cum.findIndex(c => c >= target);
+    if(i < 1) i = 1;
+    const p = latlngs[i-1], q = latlngs[i];
+    const brg = bearing(p, q);
+    L.marker([(p[0]+q[0])/2, (p[1]+q[1])/2], {
+      icon: L.divIcon({
+        className:"route-arrow",
+        html:`<svg width="13" height="13" viewBox="0 0 14 14" style="transform:rotate(${brg}deg)" aria-hidden="true"><path d="M7 1 L12 11.5 L7 9 L2 11.5 Z" fill="#E08A00" opacity="0.9"/></svg>`,
+        iconSize:[13,13], iconAnchor:[6.5,6.5]
+      }),
+      interactive:false, keyboard:false
+    }).addTo(routeLayer);
+  });
+}
+
+/* ---------- Tour route: driving directions for drivable runs ----------
    Shows are chained into "runs" where each next show is within 2 days.
    Each run gets one OSRM request; isolated shows get no line at all. */
 function drivableRuns(){
@@ -528,6 +572,7 @@ async function buildRoute(){
       const route = data.routes[0];
 
       L.geoJSON(route.geometry, {style:routeStyle}).addTo(routeLayer);
+      addArrows(route.geometry.coordinates.map(c => [c[1], c[0]]));
 
       route.legs.forEach((leg,j)=>{
         const el = document.getElementById("leg-"+run[j]);
@@ -540,7 +585,10 @@ async function buildRoute(){
     }catch(err){
       console.warn("OSRM routing unreachable — straight lines for this run:", err);
       for(let j=0;j<run.length-1;j++){
-        L.polyline([[SHOWS[run[j]].lat,SHOWS[run[j]].lng],[SHOWS[run[j+1]].lat,SHOWS[run[j+1]].lng]], routeStyle).addTo(routeLayer);
+        const a = [SHOWS[run[j]].lat, SHOWS[run[j]].lng];
+        const b = [SHOWS[run[j+1]].lat, SHOWS[run[j+1]].lng];
+        L.polyline([a, b], routeStyle).addTo(routeLayer);
+        addArrows([a, b]);
       }
       /* leg rows already show the straight-line estimates from render() */
     }
@@ -559,12 +607,17 @@ function select(i, fly){
   document.getElementById("dVenue").textContent = show.venue;
   document.getElementById("dCity").textContent = `${show.city}, ${show.state}`;
 
+  document.getElementById("dPhoto").innerHTML = show.photo
+    ? `<img src="${esc(show.photo)}" alt="${esc(show.venue)}" onerror="this.parentNode.innerHTML=''">`
+    : "";
+
   const L2 = lodgingLinks(show);
 
   document.getElementById("pShow").innerHTML = `
     <div class="row"><div class="lbl">Date</div><div class="val">${fmtLong(show.date)}${show.endDate ? " → "+fmtLong(show.endDate):""}</div></div>
     <div class="row"><div class="lbl">Venue</div><div class="val">${esc(show.venue)}<br><span style="font-weight:600;color:var(--ink-soft)">${esc(show.city)}, ${esc(show.state)}</span></div></div>
     <a class="btn primary" href="${show.tickets || ticketSearch(show)}" target="_blank" rel="noopener">${show.tickets ? "Get tickets" : "Search tickets"}</a>
+    <a class="btn" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${show.lat},${show.lng}" target="_blank" rel="noopener">Street View of the venue</a>
     <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Google Calendar</a>
     <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${show.lat},${show.lng}" target="_blank" rel="noopener">Directions to venue</a>
     <p class="hint">Dates refresh from Bandsintown every time this page loads, so new announcements appear and cancellations drop off automatically. Always confirm against <a href="https://eggymusic.com/tour/" target="_blank" rel="noopener">eggymusic.com/tour</a> before booking travel.</p>`;
