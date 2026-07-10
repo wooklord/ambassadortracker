@@ -56,7 +56,7 @@
   header h1 .egg{color:var(--yolk-deep)}
   header .sub{margin-top:4px;font-size:.8rem;color:var(--ink-soft);font-weight:600}
   #datasource{
-    display:inline-block;margin-top:8px;font-size:.68rem;font-weight:800;
+    display:inline-block;margin-top:10px;font-size:.68rem;font-weight:800;
     letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);
     background:#F3EAD8;border:1px solid var(--line);border-radius:999px;padding:3px 10px;
   }
@@ -190,7 +190,7 @@
   /* ---------- Legend ---------- */
   #legend{
     display:flex;gap:10px;flex-wrap:wrap;align-items:center;
-    margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);
+    margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);
   }
   #legend .li{display:flex;align-items:center;gap:4px;font-size:.65rem;font-weight:800;color:var(--ink-soft);letter-spacing:.03em;text-transform:uppercase}
   #legend svg{width:15px;height:19px}
@@ -206,7 +206,7 @@
       height:72vh;                     /* plain vh: works everywhere */
       border-right:none;
       border-top:1px solid var(--line);border-radius:18px 18px 0 0;
-      transform:translateY(calc(100% - 150px));transition:transform .22s ease;
+      transform:translateY(calc(100% - 195px));transition:transform .22s ease;
       box-shadow:0 -8px 30px rgba(59,46,30,.15);
       overflow:hidden;                 /* #shows is the one and only scroller */
       z-index:800;
@@ -245,8 +245,8 @@
         <h1>Ambassadors</h1>
       </div>
       <div class="sub">Eggy tour map &amp; crew planner</div>
-      <span id="datasource">loading dates…</span>
       <div id="legend" aria-label="Pin legend"></div>
+      <span id="datasource">loading dates…</span>
     </header>
     <div id="shows" role="list"></div>
   </aside>
@@ -788,7 +788,7 @@ document.querySelector("header").addEventListener("click", (e)=>{
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v11";
+const BUILD = "v12";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
