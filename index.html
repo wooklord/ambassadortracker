@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ambassadors — Eggy Tour Map</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2034%2044%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M17%201C24.5%201%2032%2014%2032%2025.5%2032%2034.6%2025.3%2041%2017%2041%208.7%2041%202%2034.6%202%2025.5%202%2014%209.5%201%2017%201Z%22%20fill%3D%22%23FDF8EF%22%20stroke%3D%22%233B2E1E%22%20stroke-width%3D%222.2%22/%3E%3Ccircle%20cx%3D%2217%22%20cy%3D%2226%22%20r%3D%227.5%22%20fill%3D%22%23F5A623%22%20stroke%3D%22%23E08A00%22%20stroke-width%3D%221.5%22/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -84,6 +85,15 @@
     display:inline-block;margin-top:3px;font-size:.62rem;font-weight:800;letter-spacing:.06em;
     text-transform:uppercase;color:var(--yolk-deep);background:#FCEFD4;border-radius:6px;padding:2px 7px;
   }
+  .leg{
+    display:flex;align-items:center;gap:8px;justify-content:center;
+    margin:-3px 0 6px;padding:2px 0;
+    font-size:.7rem;font-weight:800;color:var(--ink-soft);letter-spacing:.03em;
+  }
+  .leg::before,.leg::after{
+    content:"";flex:0 0 26px;border-top:2px dashed #D9CDBA;
+  }
+  .leg .mi{color:var(--yolk-deep)}
   .empty-note{padding:20px;text-align:center;color:var(--ink-soft);font-size:.85rem}
 
   /* ---------- Detail drawer ---------- */
@@ -272,6 +282,7 @@ const FALLBACK = [
 /* ---------- Map ---------- */
 const map = L.map("map", {zoomControl:false}).setView([39.5, -84], 5);
 L.control.zoom({position:"bottomright"}).addTo(map);
+const routeLayer = L.layerGroup().addTo(map);
 /* Primary tiles: CARTO Voyager. If those are blocked (ad blocker /
    web filter), fall back to openstreetmap.org automatically. */
 let tileErrors = 0, tilesSwapped = false;
@@ -337,6 +348,18 @@ const fmtChip = d => {
 };
 const addDays = (d,n)=>{const dt=new Date(d+"T12:00:00");dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);};
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---- Distance helpers ---- */
+const haversineMi = (a,b)=>{
+  const R=3958.8, toR=x=>x*Math.PI/180;
+  const dLat=toR(b.lat-a.lat), dLng=toR(b.lng-a.lng);
+  const h=Math.sin(dLat/2)**2 + Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+};
+const fmtDur = s => {
+  const h=Math.floor(s/3600), m=Math.round((s%3600)/60);
+  return h ? `${h}h ${m}m` : `${m}m`;
+};
 
 function lodgingLinks(show){
   const checkin  = show.date;
@@ -421,6 +444,24 @@ function render(){
     el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();select(i,true);} });
     list.appendChild(el);
 
+    /* Leg row to the next show — only when it's a drivable run
+       (next show within 2 days). Filled with straight-line estimate,
+       upgraded to real driving distance when OSRM responds. */
+    if(i < SHOWS.length-1){
+      const next = SHOWS[i+1];
+      const gapDays = (new Date(next.date) - new Date(show.endDate || show.date)) / 86400000;
+      if(gapDays <= 2){
+        const direct = haversineMi(show, next);
+        const leg = document.createElement("div");
+        leg.className = "leg";
+        leg.id = "leg-"+i;
+        leg.innerHTML = direct < 1
+          ? `same spot as last show`
+          : `↓ <span class="mi">~${Math.round(direct)} mi</span> direct`;
+        list.appendChild(leg);
+      }
+    }
+
     const m = L.marker([show.lat, show.lng], {icon:eggIcon(tierOf(show.date)), title:`${show.venue} — ${show.date}`}).addTo(map);
     m.on("click", ()=>select(i,false));
     markers.push(m);
@@ -428,6 +469,58 @@ function render(){
   });
 
   if(bounds.length) map.fitBounds(bounds, {padding:[50,50]});
+  buildRoute();
+}
+
+/* ---------- Tour route: driving directions for drivable runs only ----------
+   Shows are chained into "runs" where each next show is within 2 days.
+   Each run gets one OSRM request; isolated shows get no line at all. */
+function drivableRuns(){
+  const runs = [];
+  let run = [0];
+  for(let i=0;i<SHOWS.length-1;i++){
+    const gapDays = (new Date(SHOWS[i+1].date) - new Date(SHOWS[i].endDate || SHOWS[i].date)) / 86400000;
+    if(gapDays <= 2){ run.push(i+1); }
+    else { if(run.length>1) runs.push(run); run=[i+1]; }
+  }
+  if(run.length>1) runs.push(run);
+  return runs;
+}
+
+async function buildRoute(){
+  routeLayer.clearLayers();
+  if(SHOWS.length < 2) return;
+
+  const routeStyle = {color:"#E08A00", weight:3, opacity:.85, dashArray:"7 9"};
+  const runs = drivableRuns();
+
+  for(const run of runs){
+    try{
+      const coords = run.map(i=>`${SHOWS[i].lng},${SHOWS[i].lat}`).join(";");
+      const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`);
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const data = await r.json();
+      if(data.code !== "Ok" || !data.routes || !data.routes[0]) throw new Error(data.code || "no route");
+      const route = data.routes[0];
+
+      L.geoJSON(route.geometry, {style:routeStyle}).addTo(routeLayer);
+
+      route.legs.forEach((leg,j)=>{
+        const el = document.getElementById("leg-"+run[j]);
+        if(!el) return;
+        const mi = leg.distance/1609.34;
+        el.innerHTML = mi < 1
+          ? `same spot as last show`
+          : `🚗 <span class="mi">${Math.round(mi)} mi</span> · ${fmtDur(leg.duration)}`;
+      });
+    }catch(err){
+      console.warn("OSRM routing unreachable — straight lines for this run:", err);
+      for(let j=0;j<run.length-1;j++){
+        L.polyline([[SHOWS[run[j]].lat,SHOWS[run[j]].lng],[SHOWS[run[j+1]].lat,SHOWS[run[j+1]].lng]], routeStyle).addTo(routeLayer);
+      }
+      /* leg rows already show the straight-line estimates from render() */
+    }
+  }
 }
 
 /* ---------- Selection & drawer ---------- */
