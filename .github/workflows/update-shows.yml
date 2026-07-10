@@ -20,45 +20,71 @@ jobs:
           cat > fetch-shows.mjs <<'EOF'
           import { writeFileSync } from "fs";
 
-          const ARTIST = "id_2356753";           // Eggy
-          const APP_ID = "eggy-crew-map";
+          const PAGE = "https://www.bandsintown.com/a/2356753-eggy";
 
-          const r = await fetch(`https://rest.bandsintown.com/artists/${ARTIST}/events?app_id=${APP_ID}`, {
+          const r = await fetch(PAGE, {
             headers: {
               "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
-              "Accept": "application/json"
+              "Accept": "text/html"
             }
           });
           if (!r.ok) {
-            const body = await r.text();
-            console.error("Bandsintown responded HTTP " + r.status);
-            console.error("Response body: " + body.slice(0, 500));
-            throw new Error("Bandsintown HTTP " + r.status);
+            console.error("Page responded HTTP " + r.status);
+            throw new Error("Bandsintown page HTTP " + r.status);
           }
-          const events = await r.json();
-          if (!Array.isArray(events)) throw new Error("Unexpected payload: " + JSON.stringify(events).slice(0, 200));
+          const html = await r.text();
+
+          /* Bandsintown embeds the full schedule as schema.org JSON-LD */
+          const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+          console.log("Found " + blocks.length + " JSON-LD block(s)");
+
+          const events = [];
+          for (const b of blocks) {
+            try {
+              const data = JSON.parse(b[1]);
+              const items = Array.isArray(data) ? data : [data];
+              for (const item of items) {
+                const t = [].concat(item["@type"] || []);
+                if (t.includes("MusicEvent") || t.includes("Event")) events.push(item);
+              }
+            } catch { /* skip unparseable blocks */ }
+          }
+          console.log("Parsed " + events.length + " event entries");
 
           const shows = events
-            .filter(e => e.venue && e.venue.latitude && e.venue.longitude)
+            .filter(e => e.startDate && e.location && e.location.geo &&
+                         e.location.geo.latitude != null && e.location.geo.longitude != null)
             .map(e => ({
-              date: e.datetime.slice(0, 10),
-              venue: e.venue.name,
-              city: e.venue.city,
-              state: e.venue.region || e.venue.country,
-              lat: parseFloat(e.venue.latitude),
-              lng: parseFloat(e.venue.longitude),
-              tickets: (e.offers && e.offers[0] && e.offers[0].url) || e.url || null,
-              festival: /festival|fest|forest|hulaween|jam\b/i.test((e.title || "") + " " + e.venue.name)
-            }))
-            .sort((a, b) => a.date.localeCompare(b.date));
+              date: String(e.startDate).slice(0, 10),
+              venue: e.location.name || (e.name || "TBA"),
+              city: (e.location.address && e.location.address.addressLocality) || "",
+              state: (e.location.address && (e.location.address.addressRegion || e.location.address.addressCountry)) || "",
+              lat: parseFloat(e.location.geo.latitude),
+              lng: parseFloat(e.location.geo.longitude),
+              tickets: (e.offers && [].concat(e.offers)[0] && [].concat(e.offers)[0].url) || e.url || null,
+              festival: /festival|fest|forest|hulaween|jam\b/i.test((e.name || "") + " " + (e.location.name || ""))
+            }));
+
+          /* dedupe (same date + venue) and sort chronologically */
+          const seen = new Set();
+          const unique = shows.filter(s => {
+            const k = s.date + "|" + s.venue;
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          }).sort((a, b) => a.date.localeCompare(b.date));
+
+          if (unique.length === 0) {
+            throw new Error("Parsed 0 shows — page structure may have changed. Not overwriting shows.json.");
+          }
 
           writeFileSync("shows.json", JSON.stringify({
             updated: new Date().toISOString(),
-            source: "bandsintown",
-            shows
+            source: "bandsintown-page",
+            shows: unique
           }, null, 2));
 
-          console.log("Wrote " + shows.length + " shows to shows.json");
+          console.log("Wrote " + unique.length + " shows to shows.json");
           EOF
           node fetch-shows.mjs
           rm fetch-shows.mjs
