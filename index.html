@@ -182,6 +182,7 @@
   .egg-pin svg{transition:transform .12s ease;transform-origin:50% 100%}
   .egg-pin:hover svg,.egg-pin.hot svg{transform:scale(1.18)}
   .egg-pin.soon svg{animation:hatch 1.6s ease-in-out infinite;transform-origin:50% 100%}
+  .egg-pin.soon.today svg{animation-duration:.8s}   /* showday: 2x heartbeat, re-syncs cleanly with the 1.6s pulsers */
   @keyframes hatch{
     0%,100%{transform:scale(1)}
     50%{transform:scale(1.12) rotate(-3deg)}
@@ -335,6 +336,7 @@ cartoLayer.on("tileerror", ()=>{
 const todayStr = () => new Date().toISOString().slice(0,10);
 const daysUntil = d => Math.ceil((new Date(d+"T12:00:00") - new Date()) / 86400000);
 const isPast = show => (show.endDate || show.date) < todayStr();
+const isToday = show => show.date <= todayStr() && todayStr() <= (show.endDate || show.date);
 const tierOf = show => {
   if(isPast(show)) return 4;
   const n = daysUntil(show.date);
@@ -376,8 +378,8 @@ const eggSVG = (tier)=>{
 </svg>`;
 };
 
-const eggIcon = (tier=3, hot=false, stack=0)=>L.divIcon({
-  className:"egg-pin"+(hot?" hot":"")+(tier===0?" soon":""),
+const eggIcon = (tier=3, hot=false, stack=0, today=false)=>L.divIcon({
+  className:"egg-pin"+(hot?" hot":"")+(tier===0?" soon":"")+(today?" today":""),
   html:eggSVG(tier),
   iconSize:[34,44],
   /* shows at the same venue fan out up-and-right in screen space */
@@ -538,7 +540,7 @@ function render(){
     }
 
     const m = L.marker([show.lat, show.lng], {
-      icon:eggIcon(tier, false, show._stack),
+      icon:eggIcon(tier, false, show._stack, isToday(show)),
       title:`${show.venue} — ${show.date}`,
       zIndexOffset: -show._stack * 100   /* later duplicates tuck behind */
     }).addTo(map);
@@ -657,7 +659,7 @@ function select(i, fly){
   activeIdx = i;
   const show = SHOWS[i];
   document.querySelectorAll(".show").forEach((el,j)=>el.classList.toggle("active", j===i));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j]), j===i, SHOWS[j]._stack)));
+  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j]), j===i, SHOWS[j]._stack, isToday(SHOWS[j]))));
   if(fly) map.flyTo([show.lat, show.lng], Math.max(map.getZoom(), 9), {duration:.7});
 
   document.getElementById("dWhen").textContent = fmtLong(show.date) + (show.endDate ? " – " + fmtLong(show.endDate) : "");
@@ -740,7 +742,7 @@ function renderCrew(show){
 document.getElementById("closeDrawer").addEventListener("click", ()=>{
   document.getElementById("drawer").classList.remove("open");
   document.querySelectorAll(".show").forEach(el=>el.classList.remove("active"));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j]), false, SHOWS[j]._stack)));
+  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j]), false, SHOWS[j]._stack, isToday(SHOWS[j]))));
   activeIdx = null;
 });
 document.querySelectorAll(".tab").forEach(tab=>{
@@ -788,7 +790,7 @@ document.querySelector("header").addEventListener("click", (e)=>{
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v12";
+const BUILD = "v14";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
