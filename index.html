@@ -333,17 +333,54 @@ cartoLayer.on("tileerror", ()=>{
    tier 0 = this week / happening now (big crack, pulsing)
    tier 1 = this month, tier 2 = next 3 months, tier 3 = later
    tier 4 = played (hatched chick, lingers for 30 days after the show) */
-const todayStr = () => new Date().toISOString().slice(0,10);
+/* Local calendar date (NOT UTC): the hatch flips at local midnight
+   after the show, never mid-show on an East Coast evening */
+const localYMD = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const todayStr = () => localYMD(new Date());
 const daysUntil = d => Math.ceil((new Date(d+"T12:00:00") - new Date()) / 86400000);
 const isPast = show => (show.endDate || show.date) < todayStr();
 const isToday = show => show.date <= todayStr() && todayStr() <= (show.endDate || show.date);
+
+/* ---- The Cursed Hatch (Blucifer) ----
+   A completed show hatches the blue horse instead of the chick when:
+   - it's on the cursed list (Westport 7/11/26 — Blucifer's debut,
+     a horse until it ages off the map), or
+   - it was a Halloween show (cursed forever), or
+   - it hits the 1-in-50 lottery (deterministic per show, same for the
+     whole crew on every device — no flickering, fully arguable-about) */
+const hashStr = s => { let h=0; for(let i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))|0; } return Math.abs(h); };
+const isHalloween = show => {
+  const oct31 = show.date.slice(0,4)+"-10-31";
+  return show.date <= oct31 && oct31 <= (show.endDate || show.date);
+};
+const CURSED = show => show.date === "2026-07-11" && /levitt/i.test(show.venue);
+const bluciferOf = show => {
+  if(!isPast(show)) return false;
+  if(CURSED(show)) return true;
+  if(isHalloween(show)) return true;
+  return hashStr(show.date + show.venue) % 50 === 0;
+};
 const tierOf = show => {
   if(isPast(show)) return 4;
   const n = daysUntil(show.date);
   return n<=7 ? 0 : n<=30 ? 1 : n<=90 ? 2 : 3;
 };
 
-const eggSVG = (tier)=>{
+const eggSVG = (tier, blucifer=false)=>{
+  if(tier===4 && blucifer){
+    /* the cursed hatch: cobalt horse head, burning red eye */
+    return `
+<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M25 22 C26 16 25.5 9 22 5 L21 8.5 L18 3 L16.5 8 C12 8.5 8.5 12 7 16 L6 18.5 L8.5 18 L9.5 19.5 C12.5 21 16 22 19 22 Z"
+        fill="#2456A6" stroke="#16305E" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M24 8 L26.5 10 L24.2 12 L26.5 14 L24.2 16 L26 18" fill="none" stroke="#16305E" stroke-width="1.4" stroke-linejoin="round"/>
+  <circle cx="13.5" cy="13" r="2.8" fill="#FF2020" opacity="0.4"/>
+  <circle cx="13.5" cy="13" r="1.5" fill="#FF1F1F"/>
+  <path d="M2 25.5 C2 34.6 8.7 41 17 41 C25.3 41 32 34.6 32 25.5 L32 23.5 L28 20 L24 24 L20 20 L16 24 L12 20 L8 24 L4 20 L2 23.5 Z"
+        fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"/>
+</svg>`;
+  }
   if(tier===4){
     /* hatched: chick sitting in the cracked bottom shell */
     return `
@@ -378,14 +415,21 @@ const eggSVG = (tier)=>{
 </svg>`;
 };
 
-const eggIcon = (tier=3, hot=false, stack=0, today=false)=>L.divIcon({
-  className:"egg-pin"+(hot?" hot":"")+(tier===0?" soon":"")+(today?" today":""),
-  html:eggSVG(tier),
-  iconSize:[34,44],
-  /* shows at the same venue fan out up-and-right in screen space */
-  iconAnchor:[17 - stack*10, 43 + stack*8],
-  popupAnchor:[0,-40]
-});
+/* Pulse escalation: crack appears at 7 days (static), pulse starts at
+   3 days, doubles on showday */
+const eggIcon = (show, hot=false)=>{
+  const tier = tierOf(show);
+  const pulse = isPast(show) ? 0 : isToday(show) ? 2 : daysUntil(show.date) <= 3 ? 1 : 0;
+  const stack = show._stack || 0;
+  return L.divIcon({
+    className:"egg-pin"+(hot?" hot":"")+(pulse?" soon":"")+(pulse===2?" today":""),
+    html:eggSVG(tier, bluciferOf(show)),
+    iconSize:[34,44],
+    /* shows at the same venue fan out up-and-right in screen space */
+    iconAnchor:[17 - stack*10, 43 + stack*8],
+    popupAnchor:[0,-40]
+  });
+};
 
 /* ---------- Helpers ---------- */
 const fmtLong = d => new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"long", month:"long", day:"numeric", year:"numeric"});
@@ -439,7 +483,7 @@ let activeIdx = null;
 async function loadShows(){
   const badge = document.getElementById("datasource");
   const today = todayStr();
-  const cutoff = new Date(Date.now() - 30*86400000).toISOString().slice(0,10);
+  const cutoff = localYMD(new Date(Date.now() - 30*86400000));
 
   /* 1) Repo mirror */
   try{
@@ -516,7 +560,7 @@ function render(){
       <div class="meta">
         <div class="venue">${esc(show.venue)}</div>
         <div class="city">${esc(show.city)}, ${esc(show.state)}</div>
-        ${tier===4 ? '<span class="fest">Hatched</span>' : show.festival ? '<span class="fest">Festival run</span>' : ''}
+        ${tier===4 ? '<span class="fest">Hatched</span>' : show.festival ? '<span class="fest">Festival Set</span>' : ''}
       </div>`;
     el.addEventListener("click", ()=>select(i,true));
     el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();select(i,true);} });
@@ -540,7 +584,7 @@ function render(){
     }
 
     const m = L.marker([show.lat, show.lng], {
-      icon:eggIcon(tier, false, show._stack, isToday(show)),
+      icon:eggIcon(show),
       title:`${show.venue} — ${show.date}`,
       zIndexOffset: -show._stack * 100   /* later duplicates tuck behind */
     }).addTo(map);
@@ -659,7 +703,7 @@ function select(i, fly){
   activeIdx = i;
   const show = SHOWS[i];
   document.querySelectorAll(".show").forEach((el,j)=>el.classList.toggle("active", j===i));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j]), j===i, SHOWS[j]._stack, isToday(SHOWS[j]))));
+  markers.forEach((m,j)=>m.setIcon(eggIcon(SHOWS[j], j===i)));
   if(fly) map.flyTo([show.lat, show.lng], Math.max(map.getZoom(), 9), {duration:.7});
 
   document.getElementById("dWhen").textContent = fmtLong(show.date) + (show.endDate ? " – " + fmtLong(show.endDate) : "");
@@ -742,7 +786,7 @@ function renderCrew(show){
 document.getElementById("closeDrawer").addEventListener("click", ()=>{
   document.getElementById("drawer").classList.remove("open");
   document.querySelectorAll(".show").forEach(el=>el.classList.remove("active"));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(tierOf(SHOWS[j]), false, SHOWS[j]._stack, isToday(SHOWS[j]))));
+  markers.forEach((m,j)=>m.setIcon(eggIcon(SHOWS[j])));
   activeIdx = null;
 });
 document.querySelectorAll(".tab").forEach(tab=>{
@@ -790,7 +834,7 @@ document.querySelector("header").addEventListener("click", (e)=>{
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v14";
+const BUILD = "v16";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
