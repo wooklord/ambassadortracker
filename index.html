@@ -195,6 +195,10 @@
   }
   #legend .li{display:flex;align-items:center;gap:4px;font-size:.65rem;font-weight:800;color:var(--ink-soft);letter-spacing:.03em;text-transform:uppercase}
   #legend svg{width:15px;height:19px}
+  #legend .legend-note{
+    flex-basis:100%;font-size:.62rem;font-weight:600;color:var(--ink-soft);
+    font-style:italic;letter-spacing:.01em;margin-top:2px;
+  }
 
   /* ---------- Mobile ---------- */
   #listToggle{display:none}
@@ -207,7 +211,7 @@
       height:72vh;                     /* plain vh: works everywhere */
       border-right:none;
       border-top:1px solid var(--line);border-radius:18px 18px 0 0;
-      transform:translateY(calc(100% - 195px));transition:transform .22s ease;
+      transform:translateY(calc(100% - 215px));transition:transform .22s ease;
       box-shadow:0 -8px 30px rgba(59,46,30,.15);
       overflow:hidden;                 /* #shows is the one and only scroller */
       z-index:800;
@@ -834,7 +838,7 @@ document.querySelector("header").addEventListener("click", (e)=>{
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v16";
+const BUILD = "v17";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
@@ -846,10 +850,11 @@ window.addEventListener("orientationchange", ()=>setTimeout(()=>map.invalidateSi
 
 loadShows();
 
-/* Legend: mini egg per tier */
+/* Legend: countdown order, real day counts, pulse explained below */
 document.getElementById("legend").innerHTML = [
-  [0,"This week"],[1,"This month"],[2,"3 months"],[3,"Later"],[4,"Played"]
-].map(([t,label])=>`<span class="li">${eggSVG(t).replace('width="34" height="44"','width="15" height="19"')} ${label}</span>`).join("");
+  [3,"90+ days"],[2,"&le;90 d"],[1,"&le;30 d"],[0,"&le;7 d"],[4,"Played"]
+].map(([t,label])=>`<span class="li">${eggSVG(t).replace('width="34" height="44"','width="15" height="19"')} ${label}</span>`).join("")
++ `<span class="legend-note">Eggs pulse 3 days out, double-time on show day · hatched pins roost for 30 days</span>`;
 </script>
 </body>
 </html>
