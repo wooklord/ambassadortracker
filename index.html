@@ -173,6 +173,32 @@
   }
   .phase2 b{color:var(--yolk-deep)}
 
+  /* ---------- Crew: shared RSVPs & chat ---------- */
+  .crew-topline{display:flex;justify-content:space-between;align-items:center}
+  .linkish{background:none;border:none;color:var(--yolk-deep);font-family:var(--font-body);
+    font-weight:800;font-size:.72rem;cursor:pointer;text-decoration:underline dotted}
+  .crew-row{border-bottom:1px dashed var(--line);padding:7px 0}
+  .crew-row:last-child{border-bottom:none}
+  .crew-line{display:flex;justify-content:space-between;align-items:center}
+  .crew-name{font-weight:800;font-size:.85rem}
+  .crew-status{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    border-radius:6px;padding:2px 8px}
+  .st-going{background:#E8F3F0;color:var(--going)}
+  .st-maybe{background:#FCEFD4;color:var(--yolk-deep)}
+  .st-out{background:#EEE7DA;color:var(--ink-soft)}
+  .crew-note{font-size:.78rem;color:var(--ink-soft);margin-top:3px;line-height:1.4}
+  .chat-box{border:1px solid var(--line);border-radius:12px;background:var(--shell);
+    height:220px;overflow-y:auto;padding:10px;overscroll-behavior:contain}
+  .msg{margin-bottom:10px;font-size:.85rem;line-height:1.4}
+  .msg .who{font-weight:800;font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:var(--yolk-deep)}
+  .msg .del{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:.7rem;padding:0 4px}
+  .msg .del:hover{color:var(--tomato)}
+  .chat-send{display:flex;gap:8px;margin-top:8px}
+  .chat-send input{flex:1;border:1px solid var(--line);border-radius:12px;background:var(--shell);
+    font-family:var(--font-body);font-size:.85rem;color:var(--ink);padding:10px}
+  .chat-send input:focus-visible{outline:3px solid var(--yolk)}
+  .chat-send .btn{width:auto;margin:0;padding:0 16px}
+
   /* ---------- Route arrows & venue photo ---------- */
   .route-arrow{pointer-events:none}
   #dPhoto img{width:100%;height:140px;object-fit:cover;display:block}
@@ -280,6 +306,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* =========================================================
    Eggy Tour Map — Phase 1
@@ -287,9 +314,15 @@
      cancellations drop off automatically on each page load)
    - Fallback list below if the API is unreachable
    - Lodging deep links pre-filled with each show's dates
-   - Crew tab: RSVP + notes saved on this device only
-     (Phase 2 swaps this for a shared Supabase backend)
    ========================================================= */
+
+/* ======== PHASE 2 CONFIG — paste your key here ========
+   Supabase dashboard -> Settings -> API Keys -> Publishable key
+   (the sb_publishable_... one; it is SAFE to be public.
+    NEVER put a secret key here.) */
+const SUPA_URL = "https://zvwsstgnjhlybnbtvibg.supabase.co";
+const SUPA_KEY = "sb_publishable_lzLNa98Cn3jP_p_rVeQTHA_xijvODQv";
+/* ======================================================= */
 
 const BIT_ARTIST = "id_2356753";           // Eggy on Bandsintown
 const BIT_APP_ID = "eggy-crew-map";        // public API identifier (any string)
@@ -745,45 +778,180 @@ function select(i, fly){
   if(window.innerWidth <= 820) document.getElementById("sidebar").classList.remove("up");
 }
 
-/* ---------- Crew tab (device-local until Phase 2) ---------- */
-function crewKey(show){ return "eggy-crew-" + show.date + "-" + show.city; }
+/* ============ Phase 2: shared crew layer (Supabase) ============ */
+let supa = null, session = null, roster = null, crewChannel = null;
+const showKey = show => show.date + "|" + show.venue;
+const myEmail = () => ((session && session.user.email) || "").toLowerCase();
+const nick = em => (roster && roster.get(em)) || (em || "").split("@")[0];
+
+if(window.supabase && /^sb_publishable_/.test(SUPA_KEY)){
+  supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+  supa.auth.getSession().then(({data})=>{ session = data.session; afterAuth(); });
+  supa.auth.onAuthStateChange((_evt, s)=>{ session = s; roster = null; afterAuth(); });
+}
+
+async function afterAuth(){
+  if(session){
+    const {data} = await supa.from("crew").select("email,nickname");
+    roster = new Map((data || []).map(r => [r.email, r.nickname]));
+    if(!crewChannel){
+      crewChannel = supa.channel("crew-live")
+        .on("postgres_changes", {event:"*", schema:"public", table:"messages"}, p=>{
+          const row = p.new && p.new.show_key ? p.new : p.old;
+          if(activeIdx !== null && row && row.show_key === showKey(SHOWS[activeIdx])) loadChat(SHOWS[activeIdx]);
+        })
+        .on("postgres_changes", {event:"*", schema:"public", table:"rsvps"}, p=>{
+          const row = p.new && p.new.show_key ? p.new : p.old;
+          if(activeIdx !== null && row && row.show_key === showKey(SHOWS[activeIdx])) loadRsvps(SHOWS[activeIdx]);
+        })
+        .subscribe();
+    }
+  }
+  if(activeIdx !== null) renderCrew(SHOWS[activeIdx]);
+}
 
 function renderCrew(show){
-  const saved = JSON.parse(localStorage.getItem(crewKey(show)) || "{}");
   const p = document.getElementById("pCrew");
+
+  if(!supa){
+    p.innerHTML = `<div class="phase2"><b>Crew features are offline.</b> Either the Supabase
+      library was blocked from loading, or the publishable key hasn't been set in index.html yet.</div>`;
+    return;
+  }
+
+  if(!session){
+    p.innerHTML = `
+      <div class="row"><div class="lbl">Crew sign-in</div>
+        <input class="note" id="authEmail" type="email" autocomplete="email" placeholder="you@email.com" style="min-height:0;height:44px">
+        <button class="btn primary" id="sendLink" style="margin-top:8px">Email me a sign-in link</button>
+        <p class="hint">One-tap link, no password. You stay signed in on this device. Only works for emails on the crew list.</p>
+      </div>`;
+    p.querySelector("#sendLink").addEventListener("click", async ()=>{
+      const email = p.querySelector("#authEmail").value.trim().toLowerCase();
+      const btn = p.querySelector("#sendLink");
+      if(!email){ btn.textContent = "Enter your email first"; return; }
+      btn.textContent = "Sending…";
+      const {error} = await supa.auth.signInWithOtp({ email,
+        options:{ emailRedirectTo: location.origin + location.pathname } });
+      btn.textContent = error ? "Failed — try again" : "Sent! Check your email 📬";
+    });
+    return;
+  }
+
+  if(roster && !roster.has(myEmail())){
+    p.innerHTML = `<div class="phase2"><b>${esc(myEmail())}</b> isn't on the crew list.
+      Ask the keeper of the list to add you.
+      <button class="btn" id="signOut" style="margin-top:10px">Sign out</button></div>`;
+    p.querySelector("#signOut").addEventListener("click", ()=>supa.auth.signOut());
+    return;
+  }
+
   p.innerHTML = `
+    <div class="row crew-topline">
+      <div class="lbl" style="margin:0">Signed in as ${esc(nick(myEmail()))}</div>
+      <button id="signOut" class="linkish">sign out</button>
+    </div>
     <div class="row"><div class="lbl">Your status</div>
       <div class="rsvp-btns">
-        <button class="rsvp ${saved.rsvp==="going"?"sel-going":""}" data-v="going">Going</button>
-        <button class="rsvp ${saved.rsvp==="maybe"?"sel-maybe":""}" data-v="maybe">Maybe</button>
-        <button class="rsvp ${saved.rsvp==="out"?"sel-out":""}" data-v="out">Sitting out</button>
+        <button class="rsvp" data-v="going">Going</button>
+        <button class="rsvp" data-v="maybe">Maybe</button>
+        <button class="rsvp" data-v="out">Sitting out</button>
       </div>
     </div>
     <div class="row"><div class="lbl">Lodging &amp; logistics note</div>
-      <textarea class="note" id="crewNote" placeholder="e.g. Booked 3-bed Airbnb near downtown, 2 spots open, arriving Friday noon">${esc(saved.note||"")}</textarea>
+      <textarea class="note" id="crewNote" maxlength="500" placeholder="e.g. Booked 3-bed Airbnb near downtown, 2 spots open, arriving Friday noon"></textarea>
       <button class="btn" id="saveNote" style="margin-top:8px">Save note</button>
     </div>
-    <div class="phase2">
-      <b>Phase 2 — shared crew mode.</b> Right now your status and note save to this device only.
-      Next step wires this tab to a free Supabase backend so the whole crew sees each other's
-      RSVPs and lodging plans, plus a live chat thread per show.
+    <div class="row"><div class="lbl">The crew</div><div id="crewList">loading…</div></div>
+    <div class="row"><div class="lbl">Show chat</div>
+      <div class="chat-box" id="chatBox">loading…</div>
+      <div class="chat-send">
+        <input id="chatInput" maxlength="1000" placeholder="Message the crew…" autocomplete="off">
+        <button class="btn primary" id="chatSend">Send</button>
+      </div>
     </div>`;
 
-  p.querySelectorAll(".rsvp").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const cur = JSON.parse(localStorage.getItem(crewKey(show)) || "{}");
-      cur.rsvp = btn.dataset.v;
-      localStorage.setItem(crewKey(show), JSON.stringify(cur));
-      renderCrew(show);
-    });
+  p.querySelector("#signOut").addEventListener("click", ()=>supa.auth.signOut());
+  p.querySelectorAll(".rsvp").forEach(btn=>btn.addEventListener("click", ()=>saveRsvp(show, btn.dataset.v)));
+  p.querySelector("#saveNote").addEventListener("click", async ()=>{
+    await saveRsvp(show, null);
+    const b = p.querySelector("#saveNote");
+    b.textContent = "Saved ✓";
+    setTimeout(()=>{ const x = p.querySelector("#saveNote"); if(x) x.textContent = "Save note"; }, 1400);
   });
-  p.querySelector("#saveNote").addEventListener("click", ()=>{
-    const cur = JSON.parse(localStorage.getItem(crewKey(show)) || "{}");
-    cur.note = p.querySelector("#crewNote").value;
-    localStorage.setItem(crewKey(show), JSON.stringify(cur));
-    p.querySelector("#saveNote").textContent = "Saved ✓";
-    setTimeout(()=>{ const b=p.querySelector("#saveNote"); if(b) b.textContent="Save note"; }, 1400);
+  const send = ()=>sendMsg(show);
+  p.querySelector("#chatSend").addEventListener("click", send);
+  p.querySelector("#chatInput").addEventListener("keydown", e=>{ if(e.key==="Enter") send(); });
+
+  loadRsvps(show);
+  loadChat(show);
+}
+
+async function loadRsvps(show){
+  const box = document.getElementById("crewList");
+  if(!box || !supa || !session) return;
+  const {data} = await supa.from("rsvps").select("*").eq("show_key", showKey(show));
+  const rows = data || [];
+  const mine = rows.find(r => r.email === myEmail());
+
+  document.querySelectorAll("#pCrew .rsvp").forEach(b=>{
+    b.className = "rsvp" + (mine && mine.status === b.dataset.v ? " sel-"+b.dataset.v : "");
   });
+  const noteEl = document.getElementById("crewNote");
+  if(noteEl && document.activeElement !== noteEl) noteEl.value = (mine && mine.note) || "";
+
+  const label = {going:"Going", maybe:"Maybe", out:"Out"};
+  box.innerHTML = rows.length
+    ? rows.map(r=>`
+        <div class="crew-row">
+          <div class="crew-line"><span class="crew-name">${esc(nick(r.email))}</span>
+          <span class="crew-status st-${esc(r.status)}">${label[r.status] || ""}</span></div>
+          ${r.note ? `<div class="crew-note">${esc(r.note)}</div>` : ""}
+        </div>`).join("")
+    : `<span class="hint">No RSVPs yet — be the first egg in the basket.</span>`;
+}
+
+async function saveRsvp(show, status){
+  if(!supa || !session) return;
+  const cur = document.querySelector("#pCrew .rsvp[class*='sel-']");
+  const effective = status || (cur ? cur.dataset.v : "maybe");
+  const note = (document.getElementById("crewNote") || {value:""}).value.trim() || null;
+  await supa.from("rsvps").upsert({
+    show_key: showKey(show), email: myEmail(),
+    status: effective, note, updated_at: new Date().toISOString()
+  });
+  loadRsvps(show);
+}
+
+async function loadChat(show){
+  const box = document.getElementById("chatBox");
+  if(!box || !supa || !session) return;
+  const {data} = await supa.from("messages").select("*")
+    .eq("show_key", showKey(show))
+    .order("created_at", {ascending:true})
+    .limit(200);
+  const rows = data || [];
+  box.innerHTML = rows.length
+    ? rows.map(m=>`
+        <div class="msg">
+          <span class="who">${esc(nick(m.email))}</span>
+          ${m.email === myEmail() ? `<button class="del" data-id="${m.id}" aria-label="Delete message">✕</button>` : ""}
+          <div class="body">${esc(m.body)}</div>
+        </div>`).join("")
+    : `<span class="hint">Nothing yet. Say something.</span>`;
+  box.scrollTop = box.scrollHeight;
+  box.querySelectorAll(".del").forEach(d=>d.addEventListener("click", async ()=>{
+    await supa.from("messages").delete().eq("id", d.dataset.id);
+  }));
+}
+
+async function sendMsg(show){
+  const inp = document.getElementById("chatInput");
+  if(!inp || !supa || !session) return;
+  const body = inp.value.trim();
+  if(!body) return;
+  inp.value = "";
+  await supa.from("messages").insert({ show_key: showKey(show), email: myEmail(), body });
 }
 
 /* ---------- Drawer chrome ---------- */
@@ -838,7 +1006,7 @@ document.querySelector("header").addEventListener("click", (e)=>{
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v17";
+const BUILD = "v18";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
