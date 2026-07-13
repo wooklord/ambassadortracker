@@ -199,6 +199,14 @@
   .chat-send input:focus-visible{outline:3px solid var(--yolk)}
   .chat-send .btn{width:auto;margin:0;padding:0 16px}
 
+  /* ---------- "I'm going" marks & the clutch ---------- */
+  .show.im-going{border-left:4px solid var(--yolk)}
+  .egg-pile{display:inline-flex;align-items:center;vertical-align:middle}
+  .egg-pile svg{margin-left:-7px;filter:drop-shadow(0 1px 1px rgba(59,46,30,.25))}
+  .egg-pile svg:first-child{margin-left:0}
+  .pile-count{font-weight:800;font-size:.9rem;margin-left:8px;vertical-align:middle}
+  .pile-names{font-size:.75rem;color:var(--ink-soft);font-weight:600;margin-top:3px}
+
   /* ---------- Route arrows & venue photo ---------- */
   .route-arrow{pointer-events:none}
   #dPhoto img{width:100%;height:140px;object-fit:cover;display:block}
@@ -403,7 +411,7 @@ const tierOf = show => {
   return n<=7 ? 0 : n<=30 ? 1 : n<=90 ? 2 : 3;
 };
 
-const eggSVG = (tier, blucifer=false)=>{
+const eggSVG = (tier, blucifer=false, going=false)=>{
   if(tier===4 && blucifer){
     /* the cursed hatch: cobalt horse head, burning red eye */
     return `
@@ -448,6 +456,7 @@ const eggSVG = (tier, blucifer=false)=>{
   <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z"
         fill="${shell}" stroke="${stroke}" stroke-width="2.2"/>
   ${cracks}
+  ${going ? `<circle cx="17" cy="31" r="4.2" fill="#F5A623" stroke="#E08A00" stroke-width="1.3"/>` : ``}
   <path d="M17 41 L17 43.5" stroke="${stroke}" stroke-width="2.2"/>
 </svg>`;
 };
@@ -460,7 +469,7 @@ const eggIcon = (show, hot=false)=>{
   const stack = show._stack || 0;
   return L.divIcon({
     className:"egg-pin"+(hot?" hot":"")+(pulse?" soon":"")+(pulse===2?" today":""),
-    html:eggSVG(tier, bluciferOf(show)),
+    html:eggSVG(tier, bluciferOf(show), myGoing.has(showKey(show)) && !isPast(show)),
     iconSize:[34,44],
     /* shows at the same venue fan out up-and-right in screen space */
     iconAnchor:[17 - stack*10, 43 + stack*8],
@@ -589,7 +598,7 @@ function render(){
     const tier = tierOf(show);
     const chip = fmtChip(show.date);
     const el = document.createElement("div");
-    el.className = "show" + (tier===4 ? " past" : "");
+    el.className = "show" + (tier===4 ? " past" : "") + (myGoing.has(showKey(show)) && !isPast(show) ? " im-going" : "");
     el.setAttribute("role","listitem");
     el.setAttribute("tabindex","0");
     el.innerHTML = `
@@ -756,6 +765,7 @@ function select(i, fly){
   document.getElementById("pShow").innerHTML = `
     <div class="row"><div class="lbl">Date</div><div class="val">${fmtLong(show.date)}${show.endDate ? " → "+fmtLong(show.endDate):""}</div></div>
     <div class="row"><div class="lbl">Venue</div><div class="val">${esc(show.venue)}<br><span style="font-weight:600;color:var(--ink-soft)">${esc(show.city)}, ${esc(show.state)}</span></div></div>
+    <div class="row" id="goingRow" style="display:none"><div class="lbl">Crew going</div><div id="goingPile"></div></div>
     <a class="btn primary" href="${show.tickets || ticketSearch(show)}" target="_blank" rel="noopener">${show.tickets ? "Get tickets" : "Search tickets"}</a>
     <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Google Calendar</a>
     <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Venue on Google Maps</a>
@@ -773,6 +783,7 @@ function select(i, fly){
     <p class="hint">Lodging links open searches already filtered to this show's night and city, so only available places show up. Set the group size once you're there — it defaults to 4 adults.</p>`;
 
   renderCrew(show);
+  loadGoingPile(show);
 
   document.getElementById("drawer").classList.add("open");
   if(window.innerWidth <= 820) document.getElementById("sidebar").classList.remove("up");
@@ -780,9 +791,20 @@ function select(i, fly){
 
 /* ============ Phase 2: shared crew layer (Supabase) ============ */
 let supa = null, session = null, roster = null, crewChannel = null;
+let myGoing = new Set();   /* show_keys the signed-in user is Going to */
 const showKey = show => show.date + "|" + show.venue;
 const myEmail = () => ((session && session.user.email) || "").toLowerCase();
 const nick = em => (roster && roster.get(em)) || (em || "").split("@")[0];
+
+/* repaint the subtle "I'm going" marks on cards + pins */
+function applyGoingMarks(){
+  const cards = document.querySelectorAll("#shows .show");
+  SHOWS.forEach((s,j)=>{
+    const going = myGoing.has(showKey(s)) && !isPast(s);
+    if(cards[j]) cards[j].classList.toggle("im-going", going);
+    if(markers[j]) markers[j].setIcon(eggIcon(s, j===activeIdx));
+  });
+}
 
 if(window.supabase && /^sb_publishable_/.test(SUPA_KEY)){
   supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -794,6 +816,9 @@ async function afterAuth(){
   if(session){
     const {data} = await supa.from("crew").select("email,nickname");
     roster = new Map((data || []).map(r => [r.email, r.nickname]));
+    const {data:mine} = await supa.from("rsvps").select("show_key,status").eq("email", myEmail());
+    myGoing = new Set((mine || []).filter(r=>r.status==="going").map(r=>r.show_key));
+    applyGoingMarks();
     if(!crewChannel){
       crewChannel = supa.channel("crew-live")
         .on("postgres_changes", {event:"*", schema:"public", table:"messages"}, p=>{
@@ -802,12 +827,23 @@ async function afterAuth(){
         })
         .on("postgres_changes", {event:"*", schema:"public", table:"rsvps"}, p=>{
           const row = p.new && p.new.show_key ? p.new : p.old;
-          if(activeIdx !== null && row && row.show_key === showKey(SHOWS[activeIdx])) loadRsvps(SHOWS[activeIdx]);
+          if(row && row.email === myEmail()){
+            if(p.new && p.new.status === "going") myGoing.add(p.new.show_key);
+            else if(row.show_key) myGoing.delete(row.show_key);
+            applyGoingMarks();
+          }
+          if(activeIdx !== null && row && row.show_key === showKey(SHOWS[activeIdx])){
+            loadRsvps(SHOWS[activeIdx]);
+            loadGoingPile(SHOWS[activeIdx]);
+          }
         })
         .subscribe();
     }
+  } else {
+    myGoing = new Set();
+    applyGoingMarks();
   }
-  if(activeIdx !== null) renderCrew(SHOWS[activeIdx]);
+  if(activeIdx !== null){ renderCrew(SHOWS[activeIdx]); loadGoingPile(SHOWS[activeIdx]); }
 }
 
 function renderCrew(show){
@@ -920,7 +956,10 @@ async function saveRsvp(show, status){
     show_key: showKey(show), email: myEmail(),
     status: effective, note, updated_at: new Date().toISOString()
   });
+  if(effective === "going") myGoing.add(showKey(show)); else myGoing.delete(showKey(show));
+  applyGoingMarks();
   loadRsvps(show);
+  loadGoingPile(show);
 }
 
 async function loadChat(show){
@@ -952,6 +991,28 @@ async function sendMsg(show){
   if(!body) return;
   inp.value = "";
   await supa.from("messages").insert({ show_key: showKey(show), email: myEmail(), body });
+}
+
+/* ---- the clutch: one mini egg per crew member going ---- */
+const pileEgg = () => `
+<svg width="17" height="22" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z"
+        fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.6"/>
+  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"/>
+</svg>`;
+
+async function loadGoingPile(show){
+  const row = document.getElementById("goingRow");
+  const pile = document.getElementById("goingPile");
+  if(!row || !pile || !supa || !session || !roster || !roster.has(myEmail())) return;
+  const {data} = await supa.from("rsvps").select("email,status").eq("show_key", showKey(show));
+  const going = (data || []).filter(r => r.status === "going");
+  row.style.display = "block";
+  pile.innerHTML = going.length
+    ? `<span class="egg-pile">${going.map(pileEgg).join("")}</span>
+       <span class="pile-count">${going.length} going</span>
+       <div class="pile-names">${esc(going.map(r=>nick(r.email)).join(", "))}</div>`
+    : `<span class="hint">No yolks in the basket yet.</span>`;
 }
 
 /* ---------- Drawer chrome ---------- */
@@ -1006,7 +1067,7 @@ document.querySelector("header").addEventListener("click", (e)=>{
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v18";
+const BUILD = "v19";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
