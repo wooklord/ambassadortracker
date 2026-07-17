@@ -208,6 +208,17 @@
   .pile-count{font-weight:800;font-size:.9rem;margin-left:8px;vertical-align:middle}
   .pile-names{font-size:.75rem;color:var(--ink-soft);font-weight:600;margin-top:3px}
 
+  /* ---------- Weather tab ---------- */
+  .wx-days{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:6px}
+  .wx-day{background:var(--shell);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+  .wx-date{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tomato)}
+  .wx-icon{font-size:1.6rem;line-height:1.4}
+  .wx-label{font-size:.72rem;font-weight:700;color:var(--ink-soft)}
+  .wx-temp{font-family:var(--font-display);font-weight:800;font-size:1.05rem;margin-top:2px}
+  .wx-meta{font-size:.68rem;font-weight:700;color:var(--ink-soft);margin-top:2px}
+  #radarMap{height:220px;border:1px solid var(--line);border-radius:12px;background:#EAE3D2}
+  .radar-ctl{display:flex;align-items:center;gap:10px;margin-top:8px}
+
   /* ---------- Route arrows & venue photo ---------- */
   .route-arrow{pointer-events:none}
   #dPhoto img{width:100%;height:140px;object-fit:cover;display:block}
@@ -304,10 +315,12 @@
       </div>
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" aria-selected="true" data-panel="pShow">Show</button>
+        <button class="tab" role="tab" aria-selected="false" data-panel="pWeather">Weather</button>
         <button class="tab" role="tab" aria-selected="false" data-panel="pLodging">Lodging</button>
         <button class="tab" role="tab" aria-selected="false" data-panel="pCrew">Crew</button>
       </div>
       <div class="panel on" id="pShow"></div>
+      <div class="panel" id="pWeather"></div>
       <div class="panel" id="pLodging"></div>
       <div class="panel" id="pCrew"></div>
     </section>
@@ -330,7 +343,7 @@
    (the sb_publishable_... one; it is SAFE to be public.
     NEVER put a secret key here.) */
 const SUPA_URL = "https://zvwsstgnjhlybnbtvibg.supabase.co";
-const SUPA_KEY = "sb_publishable_lzLNa98Cn3jP_p_rVeQTHA_xijvODQv";
+const SUPA_KEY = "PASTE_PUBLISHABLE_KEY_HERE";
 /* ======================================================= */
 
 const BIT_ARTIST = "id_2356753";           // Eggy on Bandsintown
@@ -788,6 +801,7 @@ function select(i, fly){
 
   renderCrew(show);
   loadGoingPile(show);
+  renderWeather(show);
 
   document.getElementById("drawer").classList.add("open");
   if(window.innerWidth <= 820) document.getElementById("sidebar").classList.remove("up");
@@ -999,6 +1013,147 @@ async function sendMsg(show){
   await supa.from("messages").insert({ show_key: showKey(show), email: myEmail(), body });
 }
 
+/* ============ Weather tab: Open-Meteo forecast + RainViewer radar ============ */
+const wmo = code => {
+  if(code === 0) return ["☀️","Clear"];
+  if(code <= 2)  return ["🌤️","Partly cloudy"];
+  if(code === 3) return ["☁️","Overcast"];
+  if(code <= 48) return ["🌫️","Fog"];
+  if(code <= 57) return ["🌦️","Drizzle"];
+  if(code <= 67) return ["🌧️","Rain"];
+  if(code <= 77) return ["🌨️","Snow"];
+  if(code <= 82) return ["🌧️","Showers"];
+  if(code <= 86) return ["🌨️","Snow showers"];
+  return ["⛈️","Thunderstorms"];
+};
+
+async function renderWeather(show){
+  stopRadar();
+  const p = document.getElementById("pWeather");
+  const radarBlock = `
+    <div class="row" style="margin-top:16px"><div class="lbl">Radar near the venue (live)</div></div>
+    <div id="radarMap"></div>
+    <div class="radar-ctl">
+      <button class="btn" id="radarPlay" style="width:auto;margin:0;padding:6px 14px">▶ Play</button>
+      <span class="hint" id="radarTime"></span>
+    </div>
+    <p class="hint">Weather by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar by <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a></p>`;
+
+  if(isPast(show)){
+    p.innerHTML = `<div class="row"><div class="lbl">Forecast</div>
+      <p class="hint">This one's history — hope the weather was kind.</p></div>` + radarBlock;
+    wireRadar(show);
+    return;
+  }
+
+  const horizon = addDays(todayStr(), 15);
+  if(show.date > horizon){
+    p.innerHTML = `<div class="row"><div class="lbl">Forecast</div>
+      <p class="hint">Too far out — the 16-day forecast window opens <b>${fmtLong(addDays(show.date,-15))}</b>. Check back then.</p></div>` + radarBlock;
+    wireRadar(show);
+    return;
+  }
+
+  p.innerHTML = `<div class="row"><div class="lbl">Forecast — ${esc(show.city)}, ${esc(show.state)}</div>
+    <div id="wxDays" class="wx-days">loading forecast…</div></div>` + radarBlock;
+  wireRadar(show);
+
+  try{
+    const start = show.date < todayStr() ? todayStr() : show.date;
+    let end = show.endDate || show.date;
+    if(end > horizon) end = horizon;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${show.lat}&longitude=${show.lng}`
+      + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max`
+      + `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`
+      + `&start_date=${start}&end_date=${end}`;
+    const r = await fetch(url);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d = await r.json();
+    const days = d.daily.time.map((t,i)=>{
+      const [icon,label] = wmo(d.daily.weather_code[i]);
+      return `<div class="wx-day">
+        <div class="wx-date">${new Date(t+"T12:00:00").toLocaleDateString("en-US",{weekday:"short", month:"short", day:"numeric"})}</div>
+        <div class="wx-icon">${icon}</div>
+        <div class="wx-label">${label}</div>
+        <div class="wx-temp">${Math.round(d.daily.temperature_2m_max[i])}° / ${Math.round(d.daily.temperature_2m_min[i])}°</div>
+        <div class="wx-meta">💧 ${d.daily.precipitation_probability_max[i] ?? "–"}% · 💨 ${Math.round(d.daily.wind_speed_10m_max[i])} mph</div>
+      </div>`;
+    }).join("");
+    document.getElementById("wxDays").innerHTML = days;
+  }catch(err){
+    console.warn("Open-Meteo fetch failed:", err);
+    const el = document.getElementById("wxDays");
+    if(el) el.innerHTML = `<span class="hint">Couldn't load the forecast (network or blocker). Try again later.</span>`;
+  }
+}
+
+/* ---- animated radar (RainViewer tiles on a mini Leaflet map) ---- */
+let radarMap = null, radarLayers = [], radarFrames = [], radarIdx = 0, radarTimer = null;
+
+function wireRadar(show){
+  const btn = document.getElementById("radarPlay");
+  if(btn) btn.addEventListener("click", ()=>{
+    if(radarTimer) stopRadar(true); else playRadar();
+  });
+  /* if the Weather tab is already open, init immediately */
+  if(document.getElementById("pWeather").classList.contains("on")) initRadar(show);
+}
+
+async function initRadar(show){
+  const el = document.getElementById("radarMap");
+  if(!el) return;
+  if(!radarMap){
+    radarMap = L.map("radarMap", {zoomControl:false, attributionControl:false});
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {maxZoom:12}).addTo(radarMap);
+  }
+  radarMap.setView([show.lat, show.lng], 7);
+  setTimeout(()=>radarMap.invalidateSize(), 120);
+
+  try{
+    const r = await fetch("https://api.rainviewer.com/public/weather-maps.json");
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d = await r.json();
+    radarLayers.forEach(l=>radarMap.removeLayer(l));
+    radarLayers = []; radarFrames = [];
+    const frames = [...(d.radar.past || []).slice(-8), ...(d.radar.nowcast || [])];
+    frames.forEach(f=>{
+      const layer = L.tileLayer(`${d.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, {opacity:0, maxZoom:12});
+      layer.addTo(radarMap);
+      radarLayers.push(layer);
+      radarFrames.push(f.time);
+    });
+    radarIdx = Math.max(0, (d.radar.past || []).slice(-8).length - 1);
+    showRadarFrame(radarIdx);
+  }catch(err){
+    console.warn("RainViewer fetch failed:", err);
+    const t = document.getElementById("radarTime");
+    if(t) t.textContent = "radar unavailable";
+  }
+}
+
+function showRadarFrame(i){
+  radarLayers.forEach((l,j)=>l.setOpacity(j===i ? 0.75 : 0));
+  const t = document.getElementById("radarTime");
+  if(t && radarFrames[i]) t.textContent = new Date(radarFrames[i]*1000)
+    .toLocaleTimeString("en-US",{hour:"numeric", minute:"2-digit"});
+}
+
+function playRadar(){
+  if(!radarLayers.length) return;
+  const btn = document.getElementById("radarPlay");
+  if(btn) btn.textContent = "⏸ Pause";
+  radarTimer = setInterval(()=>{
+    radarIdx = (radarIdx + 1) % radarLayers.length;
+    showRadarFrame(radarIdx);
+  }, 550);
+}
+
+function stopRadar(keepFrame){
+  if(radarTimer){ clearInterval(radarTimer); radarTimer = null; }
+  const btn = document.getElementById("radarPlay");
+  if(btn) btn.textContent = "▶ Play";
+}
+
 /* ---- the clutch: one mini egg per crew member going ---- */
 const pileEgg = () => `
 <svg width="17" height="22" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1024,6 +1179,7 @@ async function loadGoingPile(show){
 /* ---------- Drawer chrome ---------- */
 document.getElementById("closeDrawer").addEventListener("click", ()=>{
   document.getElementById("drawer").classList.remove("open");
+  stopRadar();
   document.querySelectorAll(".show").forEach(el=>el.classList.remove("active"));
   markers.forEach((m,j)=>m.setIcon(eggIcon(SHOWS[j])));
   activeIdx = null;
@@ -1034,6 +1190,7 @@ document.querySelectorAll(".tab").forEach(tab=>{
     tab.setAttribute("aria-selected","true");
     document.querySelectorAll(".panel").forEach(pl=>pl.classList.remove("on"));
     document.getElementById(tab.dataset.panel).classList.add("on");
+    if(tab.dataset.panel === "pWeather" && activeIdx !== null) initRadar(SHOWS[activeIdx]);
   });
 });
 document.getElementById("listToggle").addEventListener("click", ()=>{
@@ -1073,7 +1230,7 @@ document.querySelector("header").addEventListener("click", (e)=>{
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v20";
+const BUILD = "v21";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
