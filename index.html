@@ -1,1252 +1,704 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ambassadors — Eggy Tour Map</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2034%2044%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M17%201C24.5%201%2032%2014%2032%2025.5%2032%2034.6%2025.3%2041%2017%2041%208.7%2041%202%2034.6%202%2025.5%202%2014%209.5%201%2017%201Z%22%20fill%3D%22%23FDF8EF%22%20stroke%3D%22%233B2E1E%22%20stroke-width%3D%222.2%22/%3E%3Ccircle%20cx%3D%2217%22%20cy%3D%2226%22%20r%3D%227.5%22%20fill%3D%22%23F5A623%22%20stroke%3D%22%23E08A00%22%20stroke-width%3D%221.5%22/%3E%3C/svg%3E">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fantasy Eggy</title>
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#171233">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..900,0..100,0..1&family=Outfit:wght@300..800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-  :root{
-    --yolk:#F5A623;
-    --yolk-deep:#E08A00;
-    --shell:#FDF8EF;
-    --ink:#3B2E1E;
-    --ink-soft:#7A6A54;
-    --line:#E8DCC8;
-    --going:#2E7D6E;
-    --tomato:#E4572E;
-    --card:#FFFFFF;
-    --radius:14px;
-    --font-display:"Fraunces", Georgia, serif;
-    --font-body:"Nunito Sans", system-ui, -apple-system, sans-serif;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
-  body{
-    font-family:var(--font-body);
-    color:var(--ink);
-    background:var(--shell);
-    overflow:hidden;
-  }
+:root{
+  --indigo:#171233; --pit:#100C26; --panel:#1F1941; --panel2:#28214F;
+  --yolk:#FFC53D; --yolk-deep:#E8A916; --coral:#FF6B5E; --mint:#7FE8C3;
+  --cream:#FFF3DC; --cream-dim:#CFC5AC; --ink:#2B2140; --ink-soft:#5A4E78;
+  --line:#2E2660; --line2:#3A3170; --dash:#322A63;
+  --chrome:rgba(16,12,38,.88);
+  --glow1:#2A2058; --glow2:rgba(255,107,94,.10);
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+html[data-theme="light"]{
+  --indigo:#F4ECD9; --pit:#EDE3CC; --panel:#FDF8EC; --panel2:#F1E7CF;
+  --yolk:#C98A12; --yolk-deep:#A96F05; --coral:#D9503F; --mint:#2E8F63;
+  --cream:#332A20; --cream-dim:#8A7C63; --ink:#F6EFDF; --ink-soft:#C9B99B;
+  --line:#DDD0B2; --line2:#CBBC98; --dash:#D8CAA8;
+  --chrome:rgba(244,236,217,.9);
+  --glow1:#FFF7E2; --glow2:rgba(201,138,18,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--pit)}
+body{
+  font-family:'Outfit',system-ui,sans-serif;color:var(--cream);
+  background:
+    radial-gradient(1200px 500px at 50% -10%, var(--glow1) 0%, transparent 60%),
+    radial-gradient(700px 380px at 85% 8%, var(--glow2), transparent 65%),
+    var(--indigo);
+  min-height:100vh;font-size:16px;line-height:1.45;
+}
+h1,h2,h3,.display{font-family:'Fraunces',serif;font-variation-settings:'SOFT' 80,'WONK' 1,'opsz' 60}
+a{color:var(--yolk)}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit;font-size:16px}
+.wrap{max-width:680px;margin:0 auto;padding:0 16px 96px}
 
-  /* ---------- Layout ---------- */
-  #app{display:grid;grid-template-columns:370px 1fr;height:100%}
-  #mapwrap{position:relative;min-height:0;height:100%}
-  #sidebar{
-    background:var(--shell);
-    border-right:1px solid var(--line);
-    display:flex;flex-direction:column;
-    min-height:0;
-    z-index:500;
-  }
-  #map{height:100%;width:100%;background:#EAE3D2}
+/* ---------- top bar ---------- */
+header{position:sticky;top:0;z-index:50;background:var(--chrome);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar{max-width:680px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:12px 16px}
+.logo{display:flex;align-items:center;gap:8px;font-family:'Fraunces',serif;font-weight:800;font-size:1.35rem;letter-spacing:.5px;color:var(--yolk);font-variation-settings:'SOFT' 100,'WONK' 1}
+.logo span{color:var(--cream);font-weight:500;font-style:italic}
+.who{margin-left:auto;font-size:.85rem;color:var(--cream-dim)}
+.who b{color:var(--cream)}
+.linkbtn{background:none;border:none;color:var(--coral);font-size:.8rem;text-decoration:underline;padding:2px 4px}
 
-  /* ---------- Header ---------- */
-  header{padding:18px 20px 12px;border-bottom:1px solid var(--line)}
-  .brand{display:flex;align-items:center;gap:10px}
-  .brand .logo{flex:0 0 auto;filter:drop-shadow(0 2px 2px rgba(59,46,30,.2))}
-  header h1{
-    font-family:var(--font-display);
-    font-weight:800;font-size:1.7rem;letter-spacing:-.02em;line-height:1.05;
-  }
-  header h1 .egg{color:var(--yolk-deep)}
-  header .sub{margin-top:4px;font-size:.8rem;color:var(--ink-soft);font-weight:600}
-  #datasource{
-    display:inline-block;margin-top:10px;font-size:.68rem;font-weight:800;
-    letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);
-    background:#F3EAD8;border:1px solid var(--line);border-radius:999px;padding:3px 10px;
-  }
-  #datasource.live{color:var(--going);border-color:#BFDCD5;background:#E8F3F0}
+/* ---------- tabs ---------- */
+nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;display:flex;background:var(--chrome);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;background:none;border:none;color:var(--cream-dim);padding:13px 4px 11px;font-size:.85rem;font-weight:600;letter-spacing:.4px;border-top:2px solid transparent}
+nav.tabs button.on{color:var(--yolk);border-top-color:var(--yolk)}
 
-  /* ---------- Show list ---------- */
-  #shows{flex:1;overflow-y:auto;padding:10px 12px 24px;min-height:0}
-  .show{
-    display:flex;gap:12px;align-items:center;
-    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-    padding:11px 13px;margin-bottom:9px;cursor:pointer;
-    transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-  }
-  .show:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(59,46,30,.10)}
-  .show.active{border-color:var(--yolk);box-shadow:0 0 0 2px rgba(245,166,35,.35)}
-  .show.past{opacity:.6}
-  .show.past .date-chip .mon{color:var(--ink-soft)}
-  .show:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
-  .date-chip{
-    flex:0 0 52px;text-align:center;background:var(--shell);
-    border:1px solid var(--line);border-radius:10px;padding:6px 2px;
-  }
-  .date-chip .mon{display:block;font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--tomato)}
-  .date-chip .day{display:block;font-family:var(--font-display);font-weight:800;font-size:1.25rem;line-height:1.1}
-  .show .meta{min-width:0}
-  .show .venue{font-weight:800;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .show .city{font-size:.78rem;color:var(--ink-soft);font-weight:600}
-  .show .fest{
-    display:inline-block;margin-top:3px;margin-right:4px;font-size:.62rem;font-weight:800;letter-spacing:.06em;
-    text-transform:uppercase;color:var(--yolk-deep);background:#FCEFD4;border-radius:6px;padding:2px 7px;
-  }
-  .show .fest.bill{color:var(--going);background:#E8F3F0}
-  .leg{
-    display:flex;align-items:center;gap:8px;justify-content:center;
-    margin:-3px 0 6px;padding:2px 0;
-    font-size:.7rem;font-weight:800;color:var(--ink-soft);letter-spacing:.03em;
-  }
-  .leg::before,.leg::after{
-    content:"";flex:0 0 26px;border-top:2px dashed #D9CDBA;
-  }
-  .leg .mi{color:var(--yolk-deep)}
-  .leg a{color:var(--yolk-deep);text-decoration:none;border-bottom:1px dotted var(--yolk-deep)}
-  .leg a:hover{border-bottom-style:solid}
-  .leg a:focus-visible{outline:3px solid var(--yolk)}
-  .empty-note{padding:20px;text-align:center;color:var(--ink-soft);font-size:.85rem}
+/* ---------- cards / panels ---------- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}
+.panel h2{font-size:1.25rem;margin-bottom:8px}
+.muted{color:var(--cream-dim);font-size:.88rem}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill{display:inline-block;font-family:var(--mono);font-size:.75rem;padding:3px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--cream-dim)}
+.pill.live{border-color:var(--coral);color:var(--coral);animation:pulse 1.6s infinite}
+.pill.open{border-color:var(--mint);color:var(--mint)}
+.pill.locked{border-color:var(--yolk);color:var(--yolk)}
+.pill.final{border-color:#6C61A8;color:#9A8FD6}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.showrow{display:flex;gap:12px;align-items:center;padding:13px 4px;border-bottom:1px dashed var(--dash)}
+.showrow:last-child{border-bottom:none}
+.showrow .date{font-family:var(--mono);color:var(--yolk);font-size:.85rem;min-width:74px}
+.showrow .v{flex:1;min-width:0}
+.showrow .v .venue{font-weight:600}
+.showrow .v .loc{font-size:.82rem;color:var(--cream-dim)}
+.showrow button{background:var(--panel2);color:var(--cream);border:1px solid var(--line2);border-radius:10px;padding:8px 12px;font-size:.82rem;font-weight:600}
 
-  /* ---------- Detail drawer ---------- */
-  #drawer{
-    position:absolute;top:0;right:0;height:100%;width:400px;max-width:100%;
-    background:var(--card);border-left:1px solid var(--line);
-    transform:translateX(105%);transition:transform .22s ease;
-    z-index:900;display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(59,46,30,.12);
-  }
-  #drawer.open{transform:translateX(0)}
-  #drawer .head{
-    padding:20px 20px 14px;border-bottom:3px solid var(--yolk);
-    background:linear-gradient(180deg,#FFF8EA, #FFFFFF);
-  }
-  #drawer .head .when{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tomato)}
-  #drawer .head h2{font-family:var(--font-display);font-weight:800;font-size:1.35rem;line-height:1.15;margin-top:4px}
-  #drawer .head .where{margin-top:4px;font-weight:700;color:var(--ink-soft);font-size:.88rem}
-  #closeDrawer{
-    position:absolute;top:12px;right:12px;border:1px solid var(--line);background:var(--shell);
-    width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer;color:var(--ink);
-    font-weight:800;line-height:1;
-  }
-  #closeDrawer:focus-visible{outline:3px solid var(--yolk)}
+/* ---------- the setlist card (signature) ---------- */
+.sheet{position:relative;background:var(--cream);color:var(--ink);border-radius:6px;padding:26px 22px 22px;margin:22px 6px;box-shadow:0 14px 40px rgba(0,0,0,.5), 0 2px 0 rgba(0,0,0,.2);transform:rotate(-.5deg)}
+.sheet::before,.sheet::after{content:'';position:absolute;width:86px;height:26px;background:rgba(120,120,128,.55);top:-12px;transform:rotate(-4deg);left:14%;box-shadow:inset 0 0 6px rgba(0,0,0,.25)}
+.sheet::after{left:auto;right:12%;transform:rotate(5deg)}
+.sheet h2{font-size:1.5rem;font-variation-settings:'SOFT' 100,'WONK' 1;margin-bottom:2px}
+.sheet .sub{font-family:var(--mono);font-size:.78rem;color:var(--ink-soft);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px}
+.slotline{display:flex;align-items:baseline;gap:10px;margin:14px 0}
+.slotline label{font-family:'Fraunces',serif;font-weight:700;font-size:1rem;min-width:86px}
+.slotline .pts{font-family:var(--mono);font-size:.7rem;color:var(--ink-soft);border:1px solid var(--ink-soft);border-radius:999px;padding:1px 7px;white-space:nowrap}
+.slotline input{flex:1;min-width:0;background:transparent;border:none;border-bottom:2px dashed var(--ink-soft);color:var(--ink);padding:4px 2px;font-size:1rem;font-family:'Outfit'}
+.slotline input:focus{outline:none;border-bottom-color:var(--yolk-deep);border-bottom-style:solid}
+.sheet .divider{border-top:1px solid rgba(43,33,64,.2);margin:18px 0 6px;padding-top:10px;font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);letter-spacing:1px;text-transform:uppercase}
+.savebtn{width:100%;margin-top:18px;background:var(--ink);color:var(--cream);border:none;border-radius:10px;padding:14px;font-size:1.05rem;font-weight:700;font-family:'Fraunces',serif;letter-spacing:.5px}
+.savebtn:disabled{opacity:.45}
+.countbig{font-family:var(--mono);text-align:center;margin:6px 0 0;font-size:.85rem;color:var(--ink-soft)}
+.countbig b{color:var(--coral)}
 
-  .tabs{display:flex;border-bottom:1px solid var(--line)}
-  .tab{
-    flex:1;padding:10px 0;background:none;border:none;cursor:pointer;
-    font-family:var(--font-body);font-weight:800;font-size:.78rem;letter-spacing:.05em;
-    text-transform:uppercase;color:var(--ink-soft);border-bottom:3px solid transparent;
-  }
-  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--yolk)}
-  .tab:focus-visible{outline:3px solid var(--yolk);outline-offset:-3px}
-  .panel{flex:1;overflow-y:auto;padding:16px 20px 28px;display:none}
-  .panel.on{display:block}
+/* ---------- leaderboard ---------- */
+.lb{width:100%;border-collapse:collapse}
+.lb td,.lb th{padding:10px 8px;text-align:left;border-bottom:1px dashed var(--dash)}
+.lb th{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--cream-dim);font-weight:600}
+.lb .rank{font-family:var(--mono);color:var(--yolk);width:36px}
+.lb .pts{font-family:var(--mono);text-align:right;font-size:1.05rem}
+.lb tr.me td{background:rgba(255,197,61,.07)}
 
-  .row{margin-bottom:14px}
-  .row .lbl{font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:3px}
-  .row .val{font-weight:700;font-size:.92rem}
+/* ---------- setlist + results ---------- */
+.songrow{display:flex;gap:10px;padding:7px 2px;border-bottom:1px dashed var(--dash);align-items:baseline}
+.songrow .pos{font-family:var(--mono);font-size:.72rem;color:var(--cream-dim);min-width:44px}
+.songrow.hitmine{background:linear-gradient(90deg,rgba(255,197,61,.14),transparent);border-radius:6px}
+.songrow.hitmine .name{color:var(--yolk);font-weight:700}
+.pickres{display:flex;gap:8px;align-items:baseline;padding:5px 0;font-size:.9rem}
+.pickres .sl{font-family:var(--mono);font-size:.7rem;color:var(--cream-dim);min-width:64px;text-transform:uppercase}
+.pickres .pt{margin-left:auto;font-family:var(--mono)}
+.pickres.hit .pt{color:var(--mint)}
+.pickres.miss{opacity:.55}
 
-  .btn{
-    display:block;width:100%;text-align:center;text-decoration:none;
-    font-weight:800;font-size:.9rem;border-radius:12px;padding:12px;margin-bottom:10px;
-    border:1px solid var(--line);color:var(--ink);background:var(--shell);cursor:pointer;
-    font-family:var(--font-body);
-    transition:transform .1s ease;
-  }
-  .btn:hover{transform:translateY(-1px)}
-  .btn:focus-visible{outline:3px solid var(--yolk)}
-  .btn.primary{background:var(--yolk);border-color:var(--yolk-deep);color:#2B1F0E}
-  .btn.primary:hover{background:#FFB238}
-  .hint{font-size:.75rem;color:var(--ink-soft);line-height:1.45;margin-top:6px}
+/* ---------- forms / auth / admin ---------- */
+.field{margin:12px 0}
+.field label{display:block;font-size:.8rem;color:var(--cream-dim);margin-bottom:5px;letter-spacing:.4px}
+.field input,.field select{width:100%;background:var(--pit);border:1px solid var(--line2);border-radius:10px;color:var(--cream);padding:11px 12px}
+.btn{background:var(--yolk);color:#221A0A;border:none;border-radius:10px;padding:12px 18px;font-weight:700;font-size:.95rem}
+.btn.ghost{background:var(--panel2);color:var(--cream);border:1px solid var(--line2)}
+.btn.small{padding:7px 12px;font-size:.8rem}
+.btn:disabled{opacity:.5}
+.err{color:var(--coral);font-size:.85rem;margin-top:8px;min-height:1.2em}
+.admin-slot{display:flex;gap:8px;margin:6px 0;flex-wrap:wrap}
+.admin-slot input,.admin-slot select{background:var(--pit);border:1px solid var(--line2);border-radius:8px;color:var(--cream);padding:8px 10px;font-size:.85rem}
+.admin-slot select.k,.admin-slot input.k{flex:1 1 130px;min-width:0}.admin-slot input.p{width:64px;font-family:var(--mono)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-  /* ---------- Crew tab ---------- */
-  .rsvp-btns{display:flex;gap:8px;margin-bottom:6px}
-  .rsvp{
-    flex:1;padding:10px 0;border-radius:12px;border:1px solid var(--line);
-    background:var(--shell);font-family:var(--font-body);font-weight:800;font-size:.82rem;cursor:pointer;color:var(--ink);
-  }
-  .rsvp:focus-visible{outline:3px solid var(--yolk)}
-  .rsvp.sel-going{background:var(--going);border-color:var(--going);color:#fff}
-  .rsvp.sel-maybe{background:var(--yolk);border-color:var(--yolk-deep);color:#2B1F0E}
-  .rsvp.sel-out{background:#D9CDBA;border-color:#C4B69F;color:var(--ink)}
-  textarea.note{
-    width:100%;border:1px solid var(--line);border-radius:12px;background:var(--shell);
-    font-family:var(--font-body);font-size:.85rem;color:var(--ink);padding:10px;resize:vertical;min-height:70px;
-  }
-  textarea.note:focus-visible{outline:3px solid var(--yolk)}
-  .phase2{
-    margin-top:16px;border:1px dashed var(--yolk-deep);border-radius:12px;background:#FFF6E3;
-    padding:12px;font-size:.78rem;line-height:1.5;color:var(--ink);
-  }
-  .phase2 b{color:var(--yolk-deep)}
-
-  /* ---------- Crew: shared RSVPs & chat ---------- */
-  .crew-topline{display:flex;justify-content:space-between;align-items:center}
-  .linkish{background:none;border:none;color:var(--yolk-deep);font-family:var(--font-body);
-    font-weight:800;font-size:.72rem;cursor:pointer;text-decoration:underline dotted}
-  .crew-row{border-bottom:1px dashed var(--line);padding:7px 0}
-  .crew-row:last-child{border-bottom:none}
-  .crew-line{display:flex;justify-content:space-between;align-items:center}
-  .crew-name{font-weight:800;font-size:.85rem}
-  .crew-status{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
-    border-radius:6px;padding:2px 8px}
-  .st-going{background:#E8F3F0;color:var(--going)}
-  .st-maybe{background:#FCEFD4;color:var(--yolk-deep)}
-  .st-out{background:#EEE7DA;color:var(--ink-soft)}
-  .crew-note{font-size:.78rem;color:var(--ink-soft);margin-top:3px;line-height:1.4}
-  .chat-box{border:1px solid var(--line);border-radius:12px;background:var(--shell);
-    height:220px;overflow-y:auto;padding:10px;overscroll-behavior:contain}
-  .msg{margin-bottom:10px;font-size:.85rem;line-height:1.4}
-  .msg .who{font-weight:800;font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:var(--yolk-deep)}
-  .msg .del{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:.7rem;padding:0 4px}
-  .msg .del:hover{color:var(--tomato)}
-  .chat-send{display:flex;gap:8px;margin-top:8px}
-  .chat-send input{flex:1;border:1px solid var(--line);border-radius:12px;background:var(--shell);
-    font-family:var(--font-body);font-size:.85rem;color:var(--ink);padding:10px}
-  .chat-send input:focus-visible{outline:3px solid var(--yolk)}
-  .chat-send .btn{width:auto;margin:0;padding:0 16px}
-
-  /* ---------- "I'm going" marks & the clutch ---------- */
-  .show.im-going{border-left:4px solid var(--yolk)}
-  .egg-pile{display:inline-flex;align-items:center;vertical-align:middle}
-  .egg-pile svg{margin-left:-7px;filter:drop-shadow(0 1px 1px rgba(59,46,30,.25))}
-  .egg-pile svg:first-child{margin-left:0}
-  .pile-count{font-weight:800;font-size:.9rem;margin-left:8px;vertical-align:middle}
-  .pile-names{font-size:.75rem;color:var(--ink-soft);font-weight:600;margin-top:3px}
-
-  /* ---------- Weather tab ---------- */
-  .wx-days{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:6px}
-  .wx-day{background:var(--shell);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
-  .wx-date{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tomato)}
-  .wx-icon{font-size:1.6rem;line-height:1.4}
-  .wx-label{font-size:.72rem;font-weight:700;color:var(--ink-soft)}
-  .wx-temp{font-family:var(--font-display);font-weight:800;font-size:1.05rem;margin-top:2px}
-  .wx-meta{font-size:.68rem;font-weight:700;color:var(--ink-soft);margin-top:2px}
-  #radarMap{height:220px;border:1px solid var(--line);border-radius:12px;background:#EAE3D2}
-  .radar-ctl{display:flex;align-items:center;gap:10px;margin-top:8px}
-
-  /* ---------- Route arrows & venue photo ---------- */
-  .route-arrow{pointer-events:none}
-  #dPhoto img{width:100%;height:140px;object-fit:cover;display:block}
-
-  /* ---------- Egg pin ---------- */
-  .egg-pin{filter:drop-shadow(0 2px 3px rgba(59,46,30,.35))}
-  .egg-pin svg{transition:transform .12s ease;transform-origin:50% 100%}
-  .egg-pin:hover svg,.egg-pin.hot svg{transform:scale(1.18)}
-  .egg-pin.soon svg{animation:hatch 1.6s ease-in-out infinite;transform-origin:50% 100%}
-  .egg-pin.soon.today svg{animation-duration:.8s}   /* showday: 2x heartbeat, re-syncs cleanly with the 1.6s pulsers */
-  @keyframes hatch{
-    0%,100%{transform:scale(1)}
-    50%{transform:scale(1.12) rotate(-3deg)}
-  }
-
-  /* ---------- Legend ---------- */
-  #legend{
-    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
-    margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);
-  }
-  #legend .li{display:flex;align-items:center;gap:4px;font-size:.65rem;font-weight:800;color:var(--ink-soft);letter-spacing:.03em;text-transform:uppercase}
-  #legend svg{width:15px;height:19px}
-  #legend .legend-note{
-    flex-basis:100%;font-size:.62rem;font-weight:600;color:var(--ink-soft);
-    font-style:italic;letter-spacing:.01em;margin-top:2px;
-  }
-
-  /* ---------- Mobile ---------- */
-  #listToggle{display:none}
-  @media (max-width:820px){
-    /* hard page-scroll lock: the page itself can never move */
-    html,body{position:fixed;inset:0;width:100%;overflow:hidden}
-    #app{grid-template-columns:1fr}
-    #sidebar{
-      position:fixed;left:0;right:0;bottom:0;top:auto;
-      height:72vh;                     /* plain vh: works everywhere */
-      border-right:none;
-      border-top:1px solid var(--line);border-radius:18px 18px 0 0;
-      transform:translateY(calc(100% - 215px));transition:transform .22s ease;
-      box-shadow:0 -8px 30px rgba(59,46,30,.15);
-      overflow:hidden;                 /* #shows is the one and only scroller */
-      z-index:800;
-    }
-    #sidebar.up{transform:translateY(0)}
-    /* collapsed sheet: the list must not scroll or eat taps behind the peek */
-    #sidebar:not(.up) #shows{overflow:hidden;pointer-events:none}
-    #shows{
-      overscroll-behavior:contain;      /* scroll stays in the list */
-      -webkit-overflow-scrolling:touch;
-      touch-action:pan-y;
-    }
-    #listToggle{
-      display:block;width:44px;height:5px;border-radius:99px;background:#D9CDBA;
-      border:none;margin:8px auto 0;cursor:pointer;
-    }
-    header{padding-top:6px;cursor:pointer}
-    #drawer{width:100%;position:fixed;z-index:900}
-  }
-  @media (prefers-reduced-motion:reduce){
-    *{transition:none !important;animation:none !important}
-  }
+/* ---------- toasts ---------- */
+#toasts{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:99;width:min(92vw,420px);display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--cream);color:var(--ink);border-radius:12px;padding:12px 14px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.5);border-left:6px solid var(--yolk);animation:drop .35s cubic-bezier(.2,1.4,.4,1)}
+.toast.score{border-left-color:var(--mint)}
+@keyframes drop{from{transform:translateY(-16px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+.autocomplete{position:relative}
+.acc-list{position:absolute;top:100%;left:0;right:0;background:var(--cream);border-radius:0 0 10px 10px;box-shadow:0 12px 28px rgba(0,0,0,.35);z-index:30;max-height:210px;overflow:auto}
+.acc-list div{padding:9px 12px;color:var(--ink);font-size:.92rem;border-bottom:1px solid rgba(43,33,64,.08);cursor:pointer}
+.acc-list div small{color:var(--ink-soft);font-family:var(--mono);float:right}
+.acc-list div:hover,.acc-list div.sel{background:var(--yolk);color:#221A0A}
+.hidden{display:none!important}
 </style>
 </head>
 <body>
-<div id="app">
-  <aside id="sidebar">
-    <button id="listToggle" aria-label="Expand or collapse show list"></button>
-    <header>
-      <div class="brand">
-        <svg class="logo" width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z"
-                fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2"/>
-          <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"/>
-        </svg>
-        <h1>Ambassadors</h1>
-      </div>
-      <div class="sub">Eggy tour map &amp; crew planner</div>
-      <div id="legend" aria-label="Pin legend"></div>
-      <span id="datasource">loading dates…</span>
-    </header>
-    <div id="shows" role="list"></div>
-  </aside>
 
-  <div id="mapwrap">
-    <div id="map"></div>
+<header><div class="bar">
+  <div class="logo"><svg viewBox="0 0 100 100" style="width:28px;height:28px;flex:none"><path d="M0,0 C4.0,-4.3 10.5,-4.3 13.5,0 C10.5,4.3 4.0,4.3 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(53.9,82.8) rotate(-33)"/><path d="M0,0 C3.8,-4.1 9.9,-4.1 12.7,0 C9.9,4.1 3.8,4.1 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(53.9,82.8) rotate(19)"/><path d="M0,0 C3.8,-4.1 10.0,-4.1 12.8,0 C10.0,4.1 3.8,4.1 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(64.5,79.5) rotate(-53)"/><path d="M0,0 C3.6,-3.9 9.4,-3.9 12.1,0 C9.4,3.9 3.6,3.9 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(64.5,79.5) rotate(-1)"/><path d="M0,0 C3.6,-3.9 9.5,-3.9 12.2,0 C9.5,3.9 3.6,3.9 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(73.4,72.8) rotate(-73)"/><path d="M0,0 C3.4,-3.7 8.9,-3.7 11.4,0 C8.9,3.7 3.4,3.7 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(73.4,72.8) rotate(-21)"/><path d="M0,0 C3.4,-3.7 9.0,-3.7 11.5,0 C9.0,3.7 3.4,3.7 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(79.5,63.5) rotate(-93)"/><path d="M0,0 C3.2,-3.5 8.4,-3.5 10.8,0 C8.4,3.5 3.2,3.5 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(79.5,63.5) rotate(-41)"/><path d="M0,0 C3.2,-3.5 8.4,-3.5 10.8,0 C8.4,3.5 3.2,3.5 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(82.0,52.7) rotate(-113)"/><path d="M0,0 C3.0,-3.2 7.9,-3.2 10.2,0 C7.9,3.2 3.0,3.2 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(82.0,52.7) rotate(-61)"/><path d="M0,0 C3.0,-3.2 7.9,-3.2 10.1,0 C7.9,3.2 3.0,3.2 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(80.6,41.6) rotate(-133)"/><path d="M0,0 C2.9,-3.0 7.4,-3.0 9.5,0 C7.4,3.0 2.9,3.0 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(80.6,41.6) rotate(-81)"/><path d="M0,0 C2.8,-3.0 7.4,-3.0 9.4,0 C7.4,3.0 2.8,3.0 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(75.6,31.7) rotate(-153)"/><path d="M0,0 C2.7,-2.8 6.9,-2.8 8.9,0 C6.9,2.8 2.7,2.8 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(75.6,31.7) rotate(-101)"/><path d="M0,0 C2.6,-2.8 6.8,-2.8 8.8,0 C6.8,2.8 2.6,2.8 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(67.4,24.2) rotate(-173)"/><path d="M0,0 C2.5,-2.6 6.4,-2.6 8.2,0 C6.4,2.6 2.5,2.6 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(67.4,24.2) rotate(-121)"/><path d="M0,0 C4.0,-4.3 10.5,-4.3 13.5,0 C10.5,4.3 4.0,4.3 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(46.1,82.8) rotate(213)"/><path d="M0,0 C3.8,-4.1 9.9,-4.1 12.7,0 C9.9,4.1 3.8,4.1 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(46.1,82.8) rotate(161)"/><path d="M0,0 C3.8,-4.1 10.0,-4.1 12.8,0 C10.0,4.1 3.8,4.1 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(35.5,79.5) rotate(233)"/><path d="M0,0 C3.6,-3.9 9.4,-3.9 12.1,0 C9.4,3.9 3.6,3.9 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(35.5,79.5) rotate(181)"/><path d="M0,0 C3.6,-3.9 9.5,-3.9 12.2,0 C9.5,3.9 3.6,3.9 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(26.6,72.8) rotate(253)"/><path d="M0,0 C3.4,-3.7 8.9,-3.7 11.4,0 C8.9,3.7 3.4,3.7 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(26.6,72.8) rotate(201)"/><path d="M0,0 C3.4,-3.7 9.0,-3.7 11.5,0 C9.0,3.7 3.4,3.7 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(20.5,63.5) rotate(273)"/><path d="M0,0 C3.2,-3.5 8.4,-3.5 10.8,0 C8.4,3.5 3.2,3.5 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(20.5,63.5) rotate(221)"/><path d="M0,0 C3.2,-3.5 8.4,-3.5 10.8,0 C8.4,3.5 3.2,3.5 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(18.0,52.7) rotate(293)"/><path d="M0,0 C3.0,-3.2 7.9,-3.2 10.2,0 C7.9,3.2 3.0,3.2 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(18.0,52.7) rotate(241)"/><path d="M0,0 C3.0,-3.2 7.9,-3.2 10.1,0 C7.9,3.2 3.0,3.2 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(19.4,41.6) rotate(313)"/><path d="M0,0 C2.9,-3.0 7.4,-3.0 9.5,0 C7.4,3.0 2.9,3.0 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(19.4,41.6) rotate(261)"/><path d="M0,0 C2.8,-3.0 7.4,-3.0 9.4,0 C7.4,3.0 2.8,3.0 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(24.4,31.7) rotate(333)"/><path d="M0,0 C2.7,-2.8 6.9,-2.8 8.9,0 C6.9,2.8 2.7,2.8 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(24.4,31.7) rotate(281)"/><path d="M0,0 C2.6,-2.8 6.8,-2.8 8.8,0 C6.8,2.8 2.6,2.8 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(32.6,24.2) rotate(353)"/><path d="M0,0 C2.5,-2.6 6.4,-2.6 8.2,0 C6.4,2.6 2.5,2.6 0,0 Z" fill="#5B9E45" stroke="#1A2415" stroke-width="1.4" stroke-linejoin="round" transform="translate(32.6,24.2) rotate(301)"/></svg>Fantasy Eggy</div>
+  <div class="who" id="whoami"></div>
+  <button class="linkbtn" id="themeBtn" onclick="toggleTheme()" style="text-decoration:none;font-size:1.05rem" title="light/dark">☀️</button>
+</div></header>
 
-    <section id="drawer" aria-label="Show details">
-      <div id="dPhoto"></div>
-      <div class="head">
-        <div class="when" id="dWhen"></div>
-        <h2 id="dVenue"></h2>
-        <div class="where" id="dCity"></div>
-        <button id="closeDrawer" aria-label="Close details">✕</button>
-      </div>
-      <div class="tabs" role="tablist">
-        <button class="tab" role="tab" aria-selected="true" data-panel="pShow">Show</button>
-        <button class="tab" role="tab" aria-selected="false" data-panel="pWeather">Weather</button>
-        <button class="tab" role="tab" aria-selected="false" data-panel="pLodging">Lodging</button>
-        <button class="tab" role="tab" aria-selected="false" data-panel="pCrew">Crew</button>
-      </div>
-      <div class="panel on" id="pShow"></div>
-      <div class="panel" id="pWeather"></div>
-      <div class="panel" id="pLodging"></div>
-      <div class="panel" id="pCrew"></div>
-    </section>
-  </div>
-</div>
+<div id="toasts"></div>
+<main class="wrap" id="main"></main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<nav class="tabs" id="tabs" style="display:none">
+  <button data-tab="shows" class="on">Shows</button>
+  <button data-tab="board">Standings</button>
+  <button data-tab="admin" id="admintab" style="display:none">Admin</button>
+</nav>
+
 <script>
-/* =========================================================
-   Eggy Tour Map — Phase 1
-   - Live dates from Bandsintown public API (auto-updates,
-     cancellations drop off automatically on each page load)
-   - Fallback list below if the API is unreachable
-   - Lodging deep links pre-filled with each show's dates
-   ========================================================= */
+/* =================== CONFIG — EDIT THESE =================== */
+const SUPABASE_URL  = "https://YOUR-PROJECT-REF.supabase.co";
+const SUPABASE_ANON = "YOUR-ANON-PUBLIC-KEY";
+/* =========================================================== */
 
-/* ======== PHASE 2 CONFIG — paste your key here ========
-   Supabase dashboard -> Settings -> API Keys -> Publishable key
-   (the sb_publishable_... one; it is SAFE to be public.
-    NEVER put a secret key here.) */
-const SUPA_URL = "https://zvwsstgnjhlybnbtvibg.supabase.co";
-const SUPA_KEY = "PASTE_PUBLISHABLE_KEY_HERE";
-/* ======================================================= */
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const FN_URL = SUPABASE_URL + "/functions/v1/carton-sync";
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-const BIT_ARTIST = "id_2356753";           // Eggy on Bandsintown
-const BIT_APP_ID = "eggy-crew-map";        // public API identifier (any string)
-
-/* ---- Fallback dates (edit freely; used only if the API call fails) ---- */
-const FALLBACK = [
-  {date:"2026-07-11", venue:"Levitt Pavilion for the Performing Arts", city:"Westport", state:"CT", lat:41.1415, lng:-73.3579},
-  {date:"2026-07-15", venue:"24th Street Park (free show)", city:"Virginia Beach", state:"VA", lat:36.8572, lng:-75.9766},
-  {date:"2026-07-23", venue:"Union Craft Brewing", city:"Baltimore", state:"MD", lat:39.3307, lng:-76.6447},
-  {date:"2026-07-26", venue:"Lewes Ferry Grounds", city:"Lewes", state:"DE", lat:38.7818, lng:-75.1177},
-  {date:"2026-07-31", venue:"Eggy — Boston Late Night (21+)", city:"Boston", state:"MA", lat:42.3601, lng:-71.0589},
-  {date:"2026-08-01", venue:"Eggy — Boston Late Night (21+)", city:"Boston", state:"MA", lat:42.3601, lng:-71.0589},
-  {date:"2026-10-16", venue:"TBA", city:"Cleveland", state:"OH", lat:41.4993, lng:-81.6944},
-  {date:"2026-10-17", venue:"TBA", city:"Detroit", state:"MI", lat:42.3314, lng:-83.0458},
-  {date:"2026-10-18", venue:"TBA", city:"Madison", state:"WI", lat:43.0731, lng:-89.4012},
-  {date:"2026-10-22", venue:"Suwannee Hulaween", city:"Live Oak", state:"FL", lat:30.2952, lng:-82.9840, festival:true, endDate:"2026-10-25"}
-];
-
-/* ---------- Map ---------- */
-const map = L.map("map", {zoomControl:false}).setView([39.5, -84], 5);
-L.control.zoom({position:"bottomright"}).addTo(map);
-const routeLayer = L.layerGroup().addTo(map);
-/* Primary tiles: CARTO Voyager. If those are blocked (ad blocker /
-   web filter), fall back to openstreetmap.org automatically. */
-let tileErrors = 0, tilesSwapped = false;
-const osmFallback = () => L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  maxZoom:19
-}).addTo(map);
-const cartoLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  maxZoom:19
-}).addTo(map);
-cartoLayer.on("tileerror", ()=>{
-  tileErrors++;
-  if(tileErrors >= 3 && !tilesSwapped){
-    tilesSwapped = true;
-    console.warn("CARTO tiles unreachable — switching to openstreetmap.org");
-    map.removeLayer(cartoLayer);
-    osmFallback();
-  }
-});
-
-/* Egg "hatches" as the show gets closer:
-   tier 0 = this week / happening now (big crack, pulsing)
-   tier 1 = this month, tier 2 = next 3 months, tier 3 = later
-   tier 4 = played (hatched chick, lingers for 30 days after the show) */
-/* Local calendar date (NOT UTC): the hatch flips at local midnight
-   after the show, never mid-show on an East Coast evening */
-const localYMD = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-const todayStr = () => localYMD(new Date());
-const daysUntil = d => Math.ceil((new Date(d+"T12:00:00") - new Date()) / 86400000);
-const isPast = show => (show.endDate || show.date) < todayStr();
-const isToday = show => show.date <= todayStr() && todayStr() <= (show.endDate || show.date);
-
-/* ---- The Cursed Hatch (Blucifer) ----
-   A completed show hatches the blue horse instead of the chick when:
-   - it's on the cursed list (Westport 7/11/26 — Blucifer's debut,
-     a horse until it ages off the map), or
-   - it was a Halloween show (cursed forever), or
-   - it hits the 1-in-50 lottery (deterministic per show, same for the
-     whole crew on every device — no flickering, fully arguable-about) */
-const hashStr = s => { let h=0; for(let i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))|0; } return Math.abs(h); };
-const isHalloween = show => {
-  const oct31 = show.date.slice(0,4)+"-10-31";
-  return show.date <= oct31 && oct31 <= (show.endDate || show.date);
-};
-const CURSED = show => show.date === "2026-07-11" && /levitt/i.test(show.venue);
-const bluciferOf = show => {
-  if(!isPast(show)) return false;
-  if(CURSED(show)) return true;
-  if(isHalloween(show)) return true;
-  return hashStr(show.date + show.venue) % 50 === 0;
-};
-const tierOf = show => {
-  if(isPast(show)) return 4;
-  const n = daysUntil(show.date);
-  return n<=7 ? 0 : n<=30 ? 1 : n<=90 ? 2 : 3;
-};
-
-const eggSVG = (tier, blucifer=false, going=false)=>{
-  if(tier===4 && blucifer){
-    /* the cursed hatch: cobalt horse head, burning red eye */
-    return `
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M25 22 C26 16 25.5 9 22 5 L21 8.5 L18 3 L16.5 8 C12 8.5 8.5 12 7 16 L6 18.5 L8.5 18 L9.5 19.5 C12.5 21 16 22 19 22 Z"
-        fill="#2456A6" stroke="#16305E" stroke-width="1.8" stroke-linejoin="round"/>
-  <path d="M24 8 L26.5 10 L24.2 12 L26.5 14 L24.2 16 L26 18" fill="none" stroke="#16305E" stroke-width="1.4" stroke-linejoin="round"/>
-  <circle cx="13.5" cy="13" r="2.8" fill="#FF2020" opacity="0.4"/>
-  <circle cx="13.5" cy="13" r="1.5" fill="#FF1F1F"/>
-  <path d="M2 25.5 C2 34.6 8.7 41 17 41 C25.3 41 32 34.6 32 25.5 L32 23.5 L28 20 L24 24 L20 20 L16 24 L12 20 L8 24 L4 20 L2 23.5 Z"
-        fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2" stroke-linejoin="round"/>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"/>
-</svg>`;
-  }
-  if(tier===4){
-    /* hatched: chick sitting in the cracked bottom shell */
-    return `
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <circle cx="17" cy="15" r="8.5" fill="#FFD23F" stroke="#3B2E1E" stroke-width="2"/>
-  <circle cx="14" cy="13.5" r="1.2" fill="#3B2E1E"/>
-  <circle cx="20" cy="13.5" r="1.2" fill="#3B2E1E"/>
-  <path d="M17 15.5 L14.8 18.5 L19.2 18.5 Z" fill="#E08A00" stroke="#3B2E1E" stroke-width="0.8"/>
-  <path d="M2 25.5 C2 34.6 8.7 41 17 41 C25.3 41 32 34.6 32 25.5 L32 23.5 L28 20 L24 24 L20 20 L16 24 L12 20 L8 24 L4 20 L2 23.5 Z"
-        fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2" stroke-linejoin="round"/>
-  <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"/>
-</svg>`;
-  }
-  const shell = tier===3 ? "#F1E9D8" : "#FDF8EF";
-  const stroke = tier===3 ? "#8A7A62" : "#3B2E1E";
-  const cracks = [
-    /* t0: big dramatic crack, nearly splitting the shell */
-    `<path d="M9 10 L14 14 L11 18 L17 22 L14 26 L19 29" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-linejoin="round"/>`,
-    /* t1: big zigzag crack */
-    `<path d="M12 12 L16 15 L14 18 L18 21" fill="none" stroke="${stroke}" stroke-width="1.9" stroke-linejoin="round"/>`,
-    /* t2: hairline crack */
-    `<path d="M14 11 L17 14 L15.5 17" fill="none" stroke="${stroke}" stroke-width="1.3" stroke-linejoin="round"/>`,
-    /* t3: smooth */
-    ``
-  ][tier];
-  return `
-<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z"
-        fill="${shell}" stroke="${stroke}" stroke-width="2.2"/>
-  ${cracks}
-  ${going ? `<circle cx="17" cy="31" r="4.2" fill="#F5A623" stroke="#E08A00" stroke-width="1.3"/>` : ``}
-  <path d="M17 41 L17 43.5" stroke="${stroke}" stroke-width="2.2"/>
-</svg>`;
-};
-
-/* Pulse escalation: crack appears at 7 days (static), pulse starts at
-   3 days, doubles on showday */
-const eggIcon = (show, hot=false)=>{
-  const tier = tierOf(show);
-  const pulse = isPast(show) ? 0 : isToday(show) ? 2 : daysUntil(show.date) <= 3 ? 1 : 0;
-  const stack = show._stack || 0;
-  return L.divIcon({
-    className:"egg-pin"+(hot?" hot":"")+(pulse?" soon":"")+(pulse===2?" today":""),
-    html:eggSVG(tier, bluciferOf(show), myGoing.has(showKey(show)) && !isPast(show)),
-    iconSize:[34,44],
-    /* shows at the same venue fan out up-and-right in screen space */
-    iconAnchor:[17 - stack*10, 43 + stack*8],
-    popupAnchor:[0,-40]
-  });
-};
-
-/* ---------- Helpers ---------- */
-const fmtLong = d => new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"long", month:"long", day:"numeric", year:"numeric"});
-const fmtChip = d => {
-  const dt = new Date(d+"T12:00:00");
-  return {mon:dt.toLocaleDateString("en-US",{month:"short"}), day:dt.getDate()};
-};
-const addDays = (d,n)=>{const dt=new Date(d+"T12:00:00");dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);};
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-
-/* ---- Distance helpers ---- */
-const haversineMi = (a,b)=>{
-  const R=3958.8, toR=x=>x*Math.PI/180;
-  const dLat=toR(b.lat-a.lat), dLng=toR(b.lng-a.lng);
-  const h=Math.sin(dLat/2)**2 + Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2;
-  return 2*R*Math.asin(Math.sqrt(h));
-};
-const fmtDur = s => {
-  const h=Math.floor(s/3600), m=Math.round((s%3600)/60);
-  return h ? `${h}h ${m}m` : `${m}m`;
-};
-
-function lodgingLinks(show){
-  const checkin  = show.date;
-  const checkout = show.endDate ? addDays(show.endDate,1) : addDays(show.date,1);
-  const place = `${show.city}--${show.state}--United-States`;
-  return {
-    airbnb: `https://www.airbnb.com/s/${encodeURIComponent(place)}/homes?checkin=${checkin}&checkout=${checkout}&adults=4`,
-    booking:`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(show.city+", "+show.state)}&checkin=${checkin}&checkout=${checkout}&group_adults=4`,
-    hotelsNear:`https://www.google.com/maps/search/${encodeURIComponent("hotels near "+show.venue+" "+show.city+" "+show.state)}`
-  };
+// theme: 'auto' follows the phone live; 'light'/'dark' are manual overrides
+const sysLight = matchMedia("(prefers-color-scheme: light)");
+let themeMode = localStorage.getItem("ft_theme") || "auto";
+function applyTheme(){
+  const eff = themeMode === "auto" ? (sysLight.matches ? "light" : "dark") : themeMode;
+  document.documentElement.dataset.theme = eff;
+  const b = $("#themeBtn");
+  if (b) b.textContent = themeMode === "auto" ? "\u{1F317}" : (themeMode === "light" ? "\u2600\uFE0F" : "\u{1F319}");
+  if (b) b.title = "theme: " + themeMode + (themeMode === "auto" ? " (follows your phone)" : "");
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.content = eff === "light" ? "#F4ECD9" : "#171233";
 }
-const ticketSearch = show => `https://www.google.com/search?q=${encodeURIComponent("Eggy tickets "+show.venue+" "+show.city+" "+show.date)}`;
-const legDirections = (a,b) => `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(a.venue+", "+a.city+", "+a.state)}&destination=${encodeURIComponent(b.venue+", "+b.city+", "+b.state)}`;
-const calLink = show => {
-  const s = show.date.replace(/-/g,"");
-  const e = addDays(show.endDate || show.date,1).replace(/-/g,"");
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("Eggy — "+show.venue+", "+show.city)}&dates=${s}/${e}`;
-};
+function toggleTheme(){
+  themeMode = { auto: "light", light: "dark", dark: "auto" }[themeMode] || "auto";
+  localStorage.setItem("ft_theme", themeMode);
+  applyTheme();
+}
+sysLight.addEventListener("change", () => { if (themeMode === "auto") applyTheme(); });
+applyTheme();
 
-/* ---------- State ---------- */
-let SHOWS = [];
-let markers = [];
-let activeIdx = null;
+let session = JSON.parse(localStorage.getItem("ft_session") || "null");
+let tab = "shows", currentShow = null, songList = [], cfg = null, timers = [];
 
-/* ---------- Data loading ----------
-   Priority: 1) shows.json mirrored into this repo by the GitHub Action
-                (same-origin — ad blockers and web filters can't touch it)
-             2) live Bandsintown API call
-             3) embedded fallback list */
-async function loadShows(){
-  const badge = document.getElementById("datasource");
-  const today = todayStr();
-  const cutoff = localYMD(new Date(Date.now() - 30*86400000));
-
-  /* 1) Repo mirror */
-  try{
-    const r = await fetch("shows.json", {cache:"no-store"});
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const data = await r.json();
-    if(!data.shows || !data.shows.length) throw new Error("empty mirror");
-    SHOWS = data.shows.filter(s => (s.endDate || s.date) >= cutoff);
-    const upd = new Date(data.updated).toLocaleDateString("en-US",{month:"short",day:"numeric"});
-    badge.textContent = "auto-updated " + upd;
-    badge.classList.add("live");
-    render();
-    return;
-  }catch(err){
-    console.warn("shows.json unavailable (Action not set up yet, or empty):", err.message);
-  }
-
-  /* 2) Live Bandsintown */
-  try{
-    const r = await fetch(`https://rest.bandsintown.com/artists/${BIT_ARTIST}/events?app_id=${BIT_APP_ID}`);
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const events = await r.json();
-    if(!Array.isArray(events) || events.length===0) throw new Error("empty");
-    SHOWS = events
-      .filter(e => e.venue && e.venue.latitude && e.venue.longitude)
-      .map(e => ({
-        date: e.datetime.slice(0,10),
-        venue: e.venue.name,
-        city: e.venue.city,
-        state: e.venue.region || e.venue.country,
-        lat: parseFloat(e.venue.latitude),
-        lng: parseFloat(e.venue.longitude),
-        tickets: (e.offers && e.offers[0] && e.offers[0].url) || e.url || null,
-        festival: /festival|fest|forest|hulaween|jam\b/i.test(e.title || e.venue.name)
-      }))
-      .sort((a,b)=>a.date.localeCompare(b.date));
-    badge.textContent = "live · bandsintown";
-    badge.classList.add("live");
-  }catch(err){
-    console.warn("Bandsintown fetch failed (ad blocker or web filter likely):", err);
-    /* 3) Embedded fallback */
-    SHOWS = FALLBACK.filter(s => (s.endDate || s.date) >= cutoff);
-    badge.textContent = "cached dates · check eggymusic.com/tour";
-  }
-  render();
+/* ---------------- utilities ---------------- */
+const seenToasts = new Set();
+function toast(msg, cls="", key=null){
+  if (key){ if (seenToasts.has(key)) return; seenToasts.add(key); }
+  const box = $("#toasts");
+  while (box.children.length >= 4) box.firstChild.remove();
+  const t = document.createElement("div");
+  t.className = "toast " + cls; t.textContent = msg;
+  t.onclick = () => t.remove();
+  box.appendChild(t);
+  setTimeout(() => t.remove(), 6000);
+}
+function fmtDate(d){ return new Date(d + "T12:00:00").toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}); }
+function fmtCutoff(ts){ return new Date(ts).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}); }
+function countdown(ts){
+  const ms = new Date(ts) - Date.now();
+  if (ms <= 0) return null;
+  const h = Math.floor(ms/36e5), m = Math.floor(ms%36e5/6e4), s = Math.floor(ms%6e4/1e3);
+  return h > 0 ? `${h}h ${m}m` : `${m}m ${String(s).padStart(2,"0")}s`;
+}
+function clearTimers(){ timers.forEach(clearInterval); timers = []; }
+async function rpc(fn, args){
+  const { data, error } = await db.rpc(fn, args);
+  if (error) throw new Error(error.message.replace(/^.*?: /,""));
+  return data;
+}
+async function edgeFn(action){
+  const r = await fetch(FN_URL, { method:"POST",
+    headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+SUPABASE_ANON, "apikey":SUPABASE_ANON },
+    body: JSON.stringify({ action }) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || "edge function failed");
+  return j;
+}
+function showState(s){
+  if (s.status === "final") return "final";
+  if (!s.cutoff_at) return "no cutoff";
+  if (new Date(s.cutoff_at) > new Date()) return "open";
+  const twoDaysAgo = new Date(Date.now() - 2*864e5).toLocaleDateString('sv');
+  if (s.showdate < twoDaysAgo) return "played";
+  return s.status === "live" ? "live" : "locked";
 }
 
-/* ---------- Render ---------- */
-function render(){
-  const list = document.getElementById("shows");
-  list.innerHTML = "";
-  markers.forEach(m=>map.removeLayer(m));
-  markers = [];
+/* ---------------- boot ---------------- */
+async function loadConfig(){
+  const { data } = await db.from("game_config").select("data").eq("id",1).single();
+  cfg = data.data;
+}
+async function loadSongs(){
+  const { data } = await db.from("songs_cache").select("*").order("times_played",{ascending:false});
+  songList = data || [];
+}
+function renderWho(){
+  $("#whoami").innerHTML = session
+    ? `<b>${esc(session.name)}</b> <button class="linkbtn" onclick="logout()">log out</button>` : "";
+}
+function logout(){ session = null; localStorage.removeItem("ft_session"); location.reload(); }
 
-  if(SHOWS.length===0){
-    list.innerHTML = `<div class="empty-note">No upcoming shows found. Check <a href="https://eggymusic.com/tour/">eggymusic.com/tour</a>.</div>`;
-    return;
-  }
-
-  const bounds = [];
-  const coordCount = {};
-  SHOWS.forEach((show,i)=>{
-    const ck = show.lat.toFixed(5)+","+show.lng.toFixed(5);
-    show._stack = coordCount[ck] || 0;
-    coordCount[ck] = show._stack + 1;
-    const tier = tierOf(show);
-    const chip = fmtChip(show.date);
-    const el = document.createElement("div");
-    el.className = "show" + (tier===4 ? " past" : "") + (myGoing.has(showKey(show)) && !isPast(show) ? " im-going" : "");
-    el.setAttribute("role","listitem");
-    el.setAttribute("tabindex","0");
-    el.innerHTML = `
-      <div class="date-chip"><span class="mon">${chip.mon}</span><span class="day">${chip.day}</span></div>
-      <div class="meta">
-        <div class="venue">${esc(show.venue)}</div>
-        <div class="city">${esc(show.city)}, ${esc(show.state)}</div>
-        ${tier===4 ? '<span class="fest">Hatched</span>'
-          : (show.festival ? '<span class="fest">Festival Set</span>' : '')
-            + (show.with && show.with.length ? `<span class="fest bill">w/ ${esc(show.with[0])}${show.with.length>1 ? " +" : ""}</span>` : '')}
-      </div>`;
-    el.addEventListener("click", ()=>select(i,true));
-    el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();select(i,true);} });
-    list.appendChild(el);
-
-    /* Leg row to the next show — only when it's a drivable run
-       (next show within 2 days) and neither show has already happened. */
-    if(i < SHOWS.length-1){
-      const next = SHOWS[i+1];
-      const gapDays = (new Date(next.date) - new Date(show.endDate || show.date)) / 86400000;
-      if(gapDays <= 2 && !isPast(show) && !isPast(next)){
-        const direct = haversineMi(show, next);
-        const leg = document.createElement("div");
-        leg.className = "leg";
-        leg.id = "leg-"+i;
-        leg.innerHTML = direct < 1
-          ? `same spot as last show`
-          : `↓ <span class="mi">~${Math.round(direct)} mi</span> direct · <a href="${legDirections(show, next)}" target="_blank" rel="noopener">Maps</a>`;
-        list.appendChild(leg);
-      }
-    }
-
-    const m = L.marker([show.lat, show.lng], {
-      icon:eggIcon(show),
-      title:`${show.venue} — ${show.date}`,
-      zIndexOffset: -show._stack * 100   /* later duplicates tuck behind */
-    }).addTo(map);
-    m.on("click", ()=>select(i,false));
-    markers.push(m);
-    bounds.push([show.lat, show.lng]);
-  });
-
-  /* start the list at the first upcoming show, past chicks scrolled above */
-  const firstUpcoming = SHOWS.findIndex(s => !isPast(s));
-  if(firstUpcoming > 0){
-    const card = list.querySelectorAll(".show")[firstUpcoming];
-    if(card) list.scrollTop = card.offsetTop - list.offsetTop;
-  }
-
-  if(bounds.length) map.fitBounds(bounds, {padding:[50,50]});
-  buildRoute();
+async function boot(){
+  renderWho();
+  if (!session){ renderAuth(); return; }
+  $("#tabs").style.display = "flex";
+  if (session.is_admin) $("#admintab").style.display = "";
+  await Promise.all([loadConfig(), loadSongs()]);
+  subscribeRealtime();
+  renderShows();
 }
 
-/* Compass bearing (degrees) from point a to b, each [lat,lng] */
-function bearing(a, b){
-  const toR = x=>x*Math.PI/180;
-  const dLng = toR(b[1]-a[1]);
-  const y = Math.sin(dLng)*Math.cos(toR(b[0]));
-  const x = Math.cos(toR(a[0]))*Math.sin(toR(b[0])) - Math.sin(toR(a[0]))*Math.cos(toR(b[0]))*Math.cos(dLng);
-  return (Math.atan2(y,x)*180/Math.PI+360)%360;
-}
-
-/* Place small direction chevrons at 25/50/75% along a route's geometry */
-function addArrows(latlngs){
-  if(latlngs.length < 2) return;
-  const cum = [0];
-  for(let i=1;i<latlngs.length;i++){
-    cum.push(cum[i-1] + haversineMi(
-      {lat:latlngs[i-1][0], lng:latlngs[i-1][1]},
-      {lat:latlngs[i][0],   lng:latlngs[i][1]}
-    ));
-  }
-  const total = cum[cum.length-1];
-  if(total === 0) return;
-
-  [0.25, 0.5, 0.75].forEach(f=>{
-    const target = total * f;
-    let i = cum.findIndex(c => c >= target);
-    if(i < 1) i = 1;
-    const p = latlngs[i-1], q = latlngs[i];
-    const brg = bearing(p, q);
-    L.marker([(p[0]+q[0])/2, (p[1]+q[1])/2], {
-      icon: L.divIcon({
-        className:"route-arrow",
-        html:`<svg width="26" height="26" viewBox="0 0 14 14" style="transform:rotate(${brg}deg)" aria-hidden="true"><path d="M7 1 L12 11.5 L7 9 L2 11.5 Z" fill="#E08A00" opacity="0.9"/></svg>`,
-        iconSize:[26,26], iconAnchor:[13,13]
-      }),
-      interactive:false, keyboard:false
-    }).addTo(routeLayer);
-  });
-}
-
-/* ---------- Tour route: driving directions for drivable runs ----------
-   Shows are chained into "runs" where each next show is within 2 days.
-   Each run gets one OSRM request; isolated shows get no line at all. */
-function drivableRuns(){
-  const runs = [];
-  let run = [0];
-  for(let i=0;i<SHOWS.length-1;i++){
-    const gapDays = (new Date(SHOWS[i+1].date) - new Date(SHOWS[i].endDate || SHOWS[i].date)) / 86400000;
-    if(gapDays <= 2 && !isPast(SHOWS[i]) && !isPast(SHOWS[i+1])){ run.push(i+1); }
-    else { if(run.length>1) runs.push(run); run=[i+1]; }
-  }
-  if(run.length>1) runs.push(run);
-  return runs;
-}
-
-async function buildRoute(){
-  routeLayer.clearLayers();
-  if(SHOWS.length < 2) return;
-
-  const routeStyle = {color:"#E08A00", weight:3, opacity:.85, dashArray:"7 9"};
-  const runs = drivableRuns();
-
-  for(const run of runs){
-    try{
-      const coords = run.map(i=>`${SHOWS[i].lng},${SHOWS[i].lat}`).join(";");
-      const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`);
-      if(!r.ok) throw new Error("HTTP "+r.status);
-      const data = await r.json();
-      if(data.code !== "Ok" || !data.routes || !data.routes[0]) throw new Error(data.code || "no route");
-      const route = data.routes[0];
-
-      L.geoJSON(route.geometry, {style:routeStyle}).addTo(routeLayer);
-      addArrows(route.geometry.coordinates.map(c => [c[1], c[0]]));
-
-      route.legs.forEach((leg,j)=>{
-        const el = document.getElementById("leg-"+run[j]);
-        if(!el) return;
-        const mi = leg.distance/1609.34;
-        el.innerHTML = mi < 1
-          ? `same spot as last show`
-          : `🚗 <span class="mi">${Math.round(mi)} mi</span> · ${fmtDur(leg.duration)} · <a href="${legDirections(SHOWS[run[j]], SHOWS[run[j+1]])}" target="_blank" rel="noopener">Maps</a>`;
-      });
-    }catch(err){
-      console.warn("OSRM routing unreachable — straight lines for this run:", err);
-      for(let j=0;j<run.length-1;j++){
-        const a = [SHOWS[run[j]].lat, SHOWS[run[j]].lng];
-        const b = [SHOWS[run[j+1]].lat, SHOWS[run[j+1]].lng];
-        L.polyline([a, b], routeStyle).addTo(routeLayer);
-        addArrows([a, b]);
-      }
-      /* leg rows already show the straight-line estimates from render() */
-    }
-  }
-}
-
-/* ---------- Selection & drawer ---------- */
-function select(i, fly){
-  activeIdx = i;
-  const show = SHOWS[i];
-  document.querySelectorAll(".show").forEach((el,j)=>el.classList.toggle("active", j===i));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(SHOWS[j], j===i)));
-  if(fly) map.flyTo([show.lat, show.lng], Math.max(map.getZoom(), 9), {duration:.7});
-
-  document.getElementById("dWhen").textContent = fmtLong(show.date) + (show.endDate ? " – " + fmtLong(show.endDate) : "");
-  document.getElementById("dVenue").textContent = show.venue;
-  document.getElementById("dCity").textContent = `${show.city}, ${show.state}`;
-
-  document.getElementById("dPhoto").innerHTML = show.photo
-    ? `<img src="${esc(show.photo)}" alt="${esc(show.venue)}" onerror="this.parentNode.innerHTML=''">`
-    : "";
-
-  const L2 = lodgingLinks(show);
-
-  document.getElementById("pShow").innerHTML = `
-    <div class="row"><div class="lbl">Date</div><div class="val">${fmtLong(show.date)}${show.endDate ? " → "+fmtLong(show.endDate):""}</div></div>
-    <div class="row"><div class="lbl">Venue</div><div class="val">${esc(show.venue)}<br><span style="font-weight:600;color:var(--ink-soft)">${esc(show.city)}, ${esc(show.state)}</span></div></div>
-    ${show.with && show.with.length ? `<div class="row"><div class="lbl">Also on the bill</div><div class="val">${esc(show.with.join(", "))}</div></div>` : ''}
-    <div class="row" id="goingRow" style="display:none"><div class="lbl">Crew going</div><div id="goingPile"></div></div>
-    <a class="btn primary" href="${show.tickets || ticketSearch(show)}" target="_blank" rel="noopener">${show.tickets ? "Get tickets" : "Search tickets"}</a>
-    <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Google Calendar</a>
-    <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Venue on Google Maps</a>
-    <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Directions to venue</a>
-    <p class="hint">Dates refresh from Bandsintown every time this page loads, so new announcements appear and cancellations drop off automatically. Always confirm against <a href="https://eggymusic.com/tour/" target="_blank" rel="noopener">eggymusic.com/tour</a> before booking travel.</p>`;
-
-  document.getElementById("pLodging").innerHTML = `
-    <div class="row"><div class="lbl">Stay dates</div><div class="val">Check in ${fmtLong(show.date)} · check out ${fmtLong(show.endDate ? addDays(show.endDate,1) : addDays(show.date,1))}</div></div>
-    <a class="btn primary" href="${L2.airbnb}" target="_blank" rel="noopener">Airbnbs with these dates</a>
-    <a class="btn" href="${L2.booking}" target="_blank" rel="noopener">Hotels on Booking.com</a>
-    <a class="btn" href="${L2.hotelsNear}" target="_blank" rel="noopener">Hotels near the venue (map)</a>
-    <div class="row" style="margin-top:18px"><div class="lbl">Pre-show fuel</div></div>
-    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("pizza near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍕 Pizza near the venue</a>
-    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("burgers near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍔 Burgers near the venue</a>
-    <p class="hint">Lodging links open searches already filtered to this show's night and city, so only available places show up. Set the group size once you're there — it defaults to 4 adults.</p>`;
-
-  renderCrew(show);
-  loadGoingPile(show);
-  renderWeather(show);
-
-  document.getElementById("drawer").classList.add("open");
-  if(window.innerWidth <= 820) document.getElementById("sidebar").classList.remove("up");
-}
-
-/* ============ Phase 2: shared crew layer (Supabase) ============ */
-let supa = null, session = null, roster = null, crewChannel = null;
-let myGoing = new Set();   /* show_keys the signed-in user is Going to */
-const showKey = show => show.date + "|" + show.venue;
-const myEmail = () => ((session && session.user.email) || "").toLowerCase();
-const nick = em => (roster && roster.get(em)) || (em || "").split("@")[0];
-
-/* repaint the subtle "I'm going" marks on cards + pins */
-function applyGoingMarks(){
-  const cards = document.querySelectorAll("#shows .show");
-  SHOWS.forEach((s,j)=>{
-    const going = myGoing.has(showKey(s)) && !isPast(s);
-    if(cards[j]) cards[j].classList.toggle("im-going", going);
-    if(markers[j]) markers[j].setIcon(eggIcon(s, j===activeIdx));
-  });
-}
-
-if(window.supabase && /^sb_publishable_/.test(SUPA_KEY)){
-  supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
-  supa.auth.getSession().then(({data})=>{ session = data.session; afterAuth(); });
-  supa.auth.onAuthStateChange((_evt, s)=>{ session = s; roster = null; afterAuth(); });
-}
-
-async function afterAuth(){
-  if(session){
-    const {data} = await supa.from("crew").select("email,nickname");
-    roster = new Map((data || []).map(r => [r.email, r.nickname]));
-    const {data:mine} = await supa.from("rsvps").select("show_key,status").eq("email", myEmail());
-    myGoing = new Set((mine || []).filter(r=>r.status==="going").map(r=>r.show_key));
-    applyGoingMarks();
-    if(!crewChannel){
-      crewChannel = supa.channel("crew-live")
-        .on("postgres_changes", {event:"*", schema:"public", table:"messages"}, p=>{
-          const row = p.new && p.new.show_key ? p.new : p.old;
-          if(activeIdx !== null && row && row.show_key === showKey(SHOWS[activeIdx])) loadChat(SHOWS[activeIdx]);
-        })
-        .on("postgres_changes", {event:"*", schema:"public", table:"rsvps"}, p=>{
-          const row = p.new && p.new.show_key ? p.new : p.old;
-          if(row && row.email === myEmail()){
-            if(p.new && p.new.status === "going") myGoing.add(p.new.show_key);
-            else if(row.show_key) myGoing.delete(row.show_key);
-            applyGoingMarks();
-          }
-          if(activeIdx !== null && row && row.show_key === showKey(SHOWS[activeIdx])){
-            loadRsvps(SHOWS[activeIdx]);
-            loadGoingPile(SHOWS[activeIdx]);
-          }
-        })
-        .subscribe();
-    }
-  } else {
-    myGoing = new Set();
-    applyGoingMarks();
-  }
-  if(activeIdx !== null){ renderCrew(SHOWS[activeIdx]); loadGoingPile(SHOWS[activeIdx]); }
-}
-
-function renderCrew(show){
-  const p = document.getElementById("pCrew");
-
-  if(!supa){
-    p.innerHTML = `<div class="phase2"><b>Crew features are offline.</b> Either the Supabase
-      library was blocked from loading, or the publishable key hasn't been set in index.html yet.</div>`;
-    return;
-  }
-
-  if(!session){
-    p.innerHTML = `
-      <div class="row"><div class="lbl">Crew sign-in</div>
-        <input class="note" id="authEmail" type="email" autocomplete="email" placeholder="you@email.com" style="min-height:0;height:44px">
-        <button class="btn primary" id="sendLink" style="margin-top:8px">Email me a sign-in link</button>
-        <p class="hint">One-tap link, no password. You stay signed in on this device. Only works for emails on the crew list.</p>
-      </div>`;
-    p.querySelector("#sendLink").addEventListener("click", async ()=>{
-      const email = p.querySelector("#authEmail").value.trim().toLowerCase();
-      const btn = p.querySelector("#sendLink");
-      if(!email){ btn.textContent = "Enter your email first"; return; }
-      btn.textContent = "Sending…";
-      const {error} = await supa.auth.signInWithOtp({ email,
-        options:{ emailRedirectTo: location.origin + location.pathname } });
-      btn.textContent = error
-        ? (/rate limit/i.test(error.message) ? "Email limit hit — try again in an hour" : "Failed: " + error.message)
-        : "Sent! Check your email 📬";
-    });
-    return;
-  }
-
-  if(roster && !roster.has(myEmail())){
-    p.innerHTML = `<div class="phase2"><b>${esc(myEmail())}</b> isn't on the crew list.
-      Ask the keeper of the list to add you.
-      <button class="btn" id="signOut" style="margin-top:10px">Sign out</button></div>`;
-    p.querySelector("#signOut").addEventListener("click", ()=>supa.auth.signOut());
-    return;
-  }
-
-  p.innerHTML = `
-    <div class="row crew-topline">
-      <div class="lbl" style="margin:0">Signed in as ${esc(nick(myEmail()))}</div>
-      <button id="signOut" class="linkish">sign out</button>
-    </div>
-    <div class="row"><div class="lbl">Your status</div>
-      <div class="rsvp-btns">
-        <button class="rsvp" data-v="going">Going</button>
-        <button class="rsvp" data-v="maybe">Maybe</button>
-        <button class="rsvp" data-v="out">Sitting out</button>
+/* ---------------- auth ---------------- */
+function renderAuth(){
+  $("#main").innerHTML = `
+    <div class="panel" style="margin-top:38px">
+      <h2 class="display">Who's picking?</h2>
+      <p class="muted">Name + PIN. That's the whole account.</p>
+      <div class="field"><label>Name</label><input id="a-name" autocomplete="username" placeholder="Wooklord"></div>
+      <div class="field"><label>PIN (4–8 digits)</label><input id="a-pin" inputmode="numeric" autocomplete="current-password" type="password" placeholder="••••"></div>
+      <div class="row">
+        <button class="btn" onclick="doLogin()">Log in</button>
+        <button class="btn ghost" onclick="doRegister()">New player</button>
       </div>
-    </div>
-    <div class="row"><div class="lbl">Lodging &amp; logistics note</div>
-      <textarea class="note" id="crewNote" maxlength="500" placeholder="e.g. Booked 3-bed Airbnb near downtown, 2 spots open, arriving Friday noon"></textarea>
-      <button class="btn" id="saveNote" style="margin-top:8px">Save note</button>
-    </div>
-    <div class="row"><div class="lbl">The crew</div><div id="crewList">loading…</div></div>
-    <div class="row"><div class="lbl">Show chat</div>
-      <div class="chat-box" id="chatBox">loading…</div>
-      <div class="chat-send">
-        <input id="chatInput" maxlength="1000" placeholder="Message the crew…" autocomplete="off">
-        <button class="btn primary" id="chatSend">Send</button>
-      </div>
+      <div class="err" id="a-err"></div>
     </div>`;
-
-  p.querySelector("#signOut").addEventListener("click", ()=>supa.auth.signOut());
-  p.querySelectorAll(".rsvp").forEach(btn=>btn.addEventListener("click", ()=>saveRsvp(show, btn.dataset.v)));
-  p.querySelector("#saveNote").addEventListener("click", async ()=>{
-    await saveRsvp(show, null);
-    const b = p.querySelector("#saveNote");
-    b.textContent = "Saved ✓";
-    setTimeout(()=>{ const x = p.querySelector("#saveNote"); if(x) x.textContent = "Save note"; }, 1400);
-  });
-  const send = ()=>sendMsg(show);
-  p.querySelector("#chatSend").addEventListener("click", send);
-  p.querySelector("#chatInput").addEventListener("keydown", e=>{ if(e.key==="Enter") send(); });
-
-  loadRsvps(show);
-  loadChat(show);
 }
-
-async function loadRsvps(show){
-  const box = document.getElementById("crewList");
-  if(!box || !supa || !session) return;
-  const {data} = await supa.from("rsvps").select("*").eq("show_key", showKey(show));
-  const rows = data || [];
-  const mine = rows.find(r => r.email === myEmail());
-
-  document.querySelectorAll("#pCrew .rsvp").forEach(b=>{
-    b.className = "rsvp" + (mine && mine.status === b.dataset.v ? " sel-"+b.dataset.v : "");
-  });
-  const noteEl = document.getElementById("crewNote");
-  if(noteEl && document.activeElement !== noteEl) noteEl.value = (mine && mine.note) || "";
-
-  const label = {going:"Going", maybe:"Maybe", out:"Out"};
-  box.innerHTML = rows.length
-    ? rows.map(r=>`
-        <div class="crew-row">
-          <div class="crew-line"><span class="crew-name">${esc(nick(r.email))}</span>
-          <span class="crew-status st-${esc(r.status)}">${label[r.status] || ""}</span></div>
-          ${r.note ? `<div class="crew-note">${esc(r.note)}</div>` : ""}
-        </div>`).join("")
-    : `<span class="hint">No RSVPs yet — be the first egg in the basket.</span>`;
-}
-
-async function saveRsvp(show, status){
-  if(!supa || !session) return;
-  const cur = document.querySelector("#pCrew .rsvp[class*='sel-']");
-  const effective = status || (cur ? cur.dataset.v : "maybe");
-  const note = (document.getElementById("crewNote") || {value:""}).value.trim() || null;
-  await supa.from("rsvps").upsert({
-    show_key: showKey(show), email: myEmail(),
-    status: effective, note, updated_at: new Date().toISOString()
-  });
-  if(effective === "going") myGoing.add(showKey(show)); else myGoing.delete(showKey(show));
-  applyGoingMarks();
-  loadRsvps(show);
-  loadGoingPile(show);
-}
-
-async function loadChat(show){
-  const box = document.getElementById("chatBox");
-  if(!box || !supa || !session) return;
-  const {data} = await supa.from("messages").select("*")
-    .eq("show_key", showKey(show))
-    .order("created_at", {ascending:true})
-    .limit(200);
-  const rows = data || [];
-  box.innerHTML = rows.length
-    ? rows.map(m=>`
-        <div class="msg">
-          <span class="who">${esc(nick(m.email))}</span>
-          ${m.email === myEmail() ? `<button class="del" data-id="${m.id}" aria-label="Delete message">✕</button>` : ""}
-          <div class="body">${esc(m.body)}</div>
-        </div>`).join("")
-    : `<span class="hint">Nothing yet. Say something.</span>`;
-  box.scrollTop = box.scrollHeight;
-  box.querySelectorAll(".del").forEach(d=>d.addEventListener("click", async ()=>{
-    await supa.from("messages").delete().eq("id", d.dataset.id);
-  }));
-}
-
-async function sendMsg(show){
-  const inp = document.getElementById("chatInput");
-  if(!inp || !supa || !session) return;
-  const body = inp.value.trim();
-  if(!body) return;
-  inp.value = "";
-  await supa.from("messages").insert({ show_key: showKey(show), email: myEmail(), body });
-}
-
-/* ============ Weather tab: Open-Meteo forecast + RainViewer radar ============ */
-const wmo = code => {
-  if(code === 0) return ["☀️","Clear"];
-  if(code <= 2)  return ["🌤️","Partly cloudy"];
-  if(code === 3) return ["☁️","Overcast"];
-  if(code <= 48) return ["🌫️","Fog"];
-  if(code <= 57) return ["🌦️","Drizzle"];
-  if(code <= 67) return ["🌧️","Rain"];
-  if(code <= 77) return ["🌨️","Snow"];
-  if(code <= 82) return ["🌧️","Showers"];
-  if(code <= 86) return ["🌨️","Snow showers"];
-  return ["⛈️","Thunderstorms"];
-};
-
-async function renderWeather(show){
-  stopRadar();
-  const p = document.getElementById("pWeather");
-  const radarBlock = `
-    <div class="row" style="margin-top:16px"><div class="lbl">Radar near the venue (live)</div></div>
-    <div id="radarMap"></div>
-    <div class="radar-ctl">
-      <button class="btn" id="radarPlay" style="width:auto;margin:0;padding:6px 14px">▶ Play</button>
-      <span class="hint" id="radarTime"></span>
-    </div>
-    <p class="hint">Weather by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar by <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a></p>`;
-
-  if(isPast(show)){
-    p.innerHTML = `<div class="row"><div class="lbl">Forecast</div>
-      <p class="hint">This one's history — hope the weather was kind.</p></div>` + radarBlock;
-    wireRadar(show);
-    return;
-  }
-
-  const horizon = addDays(todayStr(), 15);
-  if(show.date > horizon){
-    p.innerHTML = `<div class="row"><div class="lbl">Forecast</div>
-      <p class="hint">Too far out — the 16-day forecast window opens <b>${fmtLong(addDays(show.date,-15))}</b>. Check back then.</p></div>` + radarBlock;
-    wireRadar(show);
-    return;
-  }
-
-  p.innerHTML = `<div class="row"><div class="lbl">Forecast — ${esc(show.city)}, ${esc(show.state)}</div>
-    <div id="wxDays" class="wx-days">loading forecast…</div></div>` + radarBlock;
-  wireRadar(show);
-
+async function doLogin(){ authFlow("login"); }
+async function doRegister(){ authFlow("register_player"); }
+async function authFlow(fn){
+  $("#a-err").textContent = "";
   try{
-    const start = show.date < todayStr() ? todayStr() : show.date;
-    let end = show.endDate || show.date;
-    if(end > horizon) end = horizon;
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${show.lat}&longitude=${show.lng}`
-      + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max`
-      + `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`
-      + `&start_date=${start}&end_date=${end}`;
-    const r = await fetch(url);
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const d = await r.json();
-    const days = d.daily.time.map((t,i)=>{
-      const [icon,label] = wmo(d.daily.weather_code[i]);
-      return `<div class="wx-day">
-        <div class="wx-date">${new Date(t+"T12:00:00").toLocaleDateString("en-US",{weekday:"short", month:"short", day:"numeric"})}</div>
-        <div class="wx-icon">${icon}</div>
-        <div class="wx-label">${label}</div>
-        <div class="wx-temp">${Math.round(d.daily.temperature_2m_max[i])}° / ${Math.round(d.daily.temperature_2m_min[i])}°</div>
-        <div class="wx-meta">💧 ${d.daily.precipitation_probability_max[i] ?? "–"}% · 💨 ${Math.round(d.daily.wind_speed_10m_max[i])} mph</div>
-      </div>`;
-    }).join("");
-    document.getElementById("wxDays").innerHTML = days;
-  }catch(err){
-    console.warn("Open-Meteo fetch failed:", err);
-    const el = document.getElementById("wxDays");
-    if(el) el.innerHTML = `<span class="hint">Couldn't load the forecast (network or blocker). Try again later.</span>`;
-  }
+    const d = await rpc(fn, { p_name: $("#a-name").value, p_pin: $("#a-pin").value });
+    session = { ...d, pin: $("#a-pin").value };
+    localStorage.setItem("ft_session", JSON.stringify(session));
+    location.reload();
+  }catch(e){ $("#a-err").textContent = e.message; }
 }
 
-/* ---- animated radar (RainViewer tiles on a mini Leaflet map) ---- */
-let radarMap = null, radarLayers = [], radarFrames = [], radarIdx = 0, radarTimer = null;
-
-function wireRadar(show){
-  const btn = document.getElementById("radarPlay");
-  if(btn) btn.addEventListener("click", ()=>{
-    if(radarTimer) stopRadar(true); else playRadar();
-  });
-  /* if the Weather tab is already open, init immediately */
-  if(document.getElementById("pWeather").classList.contains("on")) initRadar(show);
-}
-
-async function initRadar(show){
-  const el = document.getElementById("radarMap");
-  if(!el) return;
-  if(!radarMap){
-    radarMap = L.map("radarMap", {zoomControl:false, attributionControl:false});
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {maxZoom:12}).addTo(radarMap);
-  }
-  radarMap.setView([show.lat, show.lng], 7);
-  setTimeout(()=>radarMap.invalidateSize(), 120);
-
-  try{
-    const r = await fetch("https://api.rainviewer.com/public/weather-maps.json");
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const d = await r.json();
-    radarLayers.forEach(l=>radarMap.removeLayer(l));
-    radarLayers = []; radarFrames = [];
-    const frames = [...(d.radar.past || []).slice(-8), ...(d.radar.nowcast || [])];
-    frames.forEach(f=>{
-      const layer = L.tileLayer(`${d.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, {opacity:0, maxZoom:12});
-      layer.addTo(radarMap);
-      radarLayers.push(layer);
-      radarFrames.push(f.time);
-    });
-    radarIdx = Math.max(0, (d.radar.past || []).slice(-8).length - 1);
-    showRadarFrame(radarIdx);
-  }catch(err){
-    console.warn("RainViewer fetch failed:", err);
-    const t = document.getElementById("radarTime");
-    if(t) t.textContent = "radar unavailable";
-  }
-}
-
-function showRadarFrame(i){
-  radarLayers.forEach((l,j)=>l.setOpacity(j===i ? 0.75 : 0));
-  const t = document.getElementById("radarTime");
-  if(t && radarFrames[i]) t.textContent = new Date(radarFrames[i]*1000)
-    .toLocaleTimeString("en-US",{hour:"numeric", minute:"2-digit"});
-}
-
-function playRadar(){
-  if(!radarLayers.length) return;
-  const btn = document.getElementById("radarPlay");
-  if(btn) btn.textContent = "⏸ Pause";
-  radarTimer = setInterval(()=>{
-    radarIdx = (radarIdx + 1) % radarLayers.length;
-    showRadarFrame(radarIdx);
-  }, 550);
-}
-
-function stopRadar(keepFrame){
-  if(radarTimer){ clearInterval(radarTimer); radarTimer = null; }
-  const btn = document.getElementById("radarPlay");
-  if(btn) btn.textContent = "▶ Play";
-}
-
-/* ---- the clutch: one mini egg per crew member going ---- */
-const pileEgg = () => `
-<svg width="17" height="22" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path d="M17 1C24.5 1 32 14 32 25.5 32 34.6 25.3 41 17 41 8.7 41 2 34.6 2 25.5 2 14 9.5 1 17 1Z"
-        fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.6"/>
-  <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"/>
-</svg>`;
-
-async function loadGoingPile(show){
-  const row = document.getElementById("goingRow");
-  const pile = document.getElementById("goingPile");
-  if(!row || !pile || !supa || !session || !roster || !roster.has(myEmail())) return;
-  const {data} = await supa.from("rsvps").select("email,status").eq("show_key", showKey(show));
-  const going = (data || []).filter(r => r.status === "going");
-  row.style.display = "block";
-  pile.innerHTML = going.length
-    ? `<span class="egg-pile">${going.map(pileEgg).join("")}</span>
-       <span class="pile-count">${going.length} going</span>
-       <div class="pile-names">${esc(going.map(r=>nick(r.email)).join(", "))}</div>`
-    : `<span class="hint">No yolks in the basket yet.</span>`;
-}
-
-/* ---------- Drawer chrome ---------- */
-document.getElementById("closeDrawer").addEventListener("click", ()=>{
-  document.getElementById("drawer").classList.remove("open");
-  stopRadar();
-  document.querySelectorAll(".show").forEach(el=>el.classList.remove("active"));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(SHOWS[j])));
-  activeIdx = null;
-});
-document.querySelectorAll(".tab").forEach(tab=>{
-  tab.addEventListener("click", ()=>{
-    document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected","false"));
-    tab.setAttribute("aria-selected","true");
-    document.querySelectorAll(".panel").forEach(pl=>pl.classList.remove("on"));
-    document.getElementById(tab.dataset.panel).classList.add("on");
-    if(tab.dataset.panel === "pWeather" && activeIdx !== null) initRadar(SHOWS[activeIdx]);
-  });
-});
-document.getElementById("listToggle").addEventListener("click", ()=>{
-  document.getElementById("sidebar").classList.toggle("up");
-});
-/* On phones the tiny pill is a hard target — let the whole header toggle too */
-document.querySelector("header").addEventListener("click", (e)=>{
-  if(window.innerWidth <= 820 && !e.target.closest("a")){
-    document.getElementById("sidebar").classList.toggle("up");
-  }
-});
-
-/* Bottom-sheet swipe gestures (mobile):
-   collapsed + swipe up  -> expand
-   expanded  + swipe down while list is at the top -> collapse */
-(function(){
-  const sb = document.getElementById("sidebar");
-  const list = document.getElementById("shows");
-  const mobile = () => window.innerWidth <= 820;
-  let startY = null;
-  sb.addEventListener("touchstart", e=>{ startY = e.touches[0].clientY; }, {passive:true});
-  sb.addEventListener("touchmove", e=>{
-    if(!mobile() || startY === null) return;
-    const dy = e.touches[0].clientY - startY;
-    if(!sb.classList.contains("up")){
-      e.preventDefault();               /* nothing inside may scroll while collapsed */
-      if(dy < -15){ sb.classList.add("up"); startY = null; }
-    } else if(dy > 45 && list.scrollTop <= 0){
-      sb.classList.remove("up"); startY = null;
+/* ---------------- shows list ---------------- */
+async function renderShows(){
+  clearTimers(); tab = "shows"; currentShow = null; markTab();
+  const todayStr = new Date().toLocaleDateString('sv');
+  const graceStr = new Date(Date.now() - 2*864e5).toISOString().slice(0,10);
+  const [{ data: up }, { data: past }] = await Promise.all([
+    db.from("shows").select("*").gte("showdate", graceStr).order("showdate"),
+    db.from("shows").select("*").lt("showdate", graceStr).order("showdate",{ascending:false}).limit(12),
+  ]);
+  const isRecent = s => s.showdate < todayStr || s.status === "final";
+  const upcoming = (up||[]).filter(s => !isRecent(s));
+  const justPlayed = (up||[]).filter(isRecent);
+  const finals = [...(up||[]), ...(past||[])].filter(s => s.status === "final").map(s => s.id);
+  const winners = {};
+  if (finals.length){
+    const [{ data: sc }, { data: pl }] = await Promise.all([
+      db.from("scores").select("show_id,player_id,points").in("show_id", finals),
+      db.from("players_public").select("id,name"),
+    ]);
+    const pn = Object.fromEntries((pl||[]).map(p => [p.id, p.name]));
+    for (const s of sc||[]){
+      if (!winners[s.show_id] || s.points > winners[s.show_id].points)
+        winners[s.show_id] = { points: s.points, name: pn[s.player_id] || "?" };
     }
-  }, {passive:false});
-  sb.addEventListener("touchend", ()=>{ startY = null; }, {passive:true});
-  /* any tap on the collapsed sheet expands it */
-  sb.addEventListener("click", ()=>{
-    if(mobile() && !sb.classList.contains("up")) sb.classList.add("up");
+  }
+  const row = s => {
+    const st = showState(s);
+    const cls = { open:"open", live:"live", locked:"locked", final:"final", played:"final" }[st] || "";
+    const cd = st === "open" ? countdown(s.cutoff_at) : null;
+    const txt = st === "final" ? "complete" : (st === "open" && cd ? "locks in " + cd : st);
+    const win = st === "final" && winners[s.id]
+      ? ` <span style="color:var(--yolk);font-size:.82rem">👑 ${esc(winners[s.id].name)} · ${winners[s.id].points}</span>` : "";
+    return `<div class="showrow">
+      <div class="date">${fmtDate(s.showdate)}</div>
+      <div class="v"><div class="venue">${esc(s.venue||"TBA")}</div>
+        <div class="loc">${esc(s.city||"")}${s.state?", "+esc(s.state):""}
+          <span class="pill ${cls}" data-cd="${st==='open'?s.cutoff_at:''}">${txt}</span>${win}</div></div>
+      <button onclick="openShow(${s.id})">${st==='open'?'Pick':'View'}</button>
+    </div>`;
+  };
+  $("#main").innerHTML = `
+    ${justPlayed.length ? `<div class="panel"><h2>Just played</h2>${justPlayed.map(row).join("")}</div>` : ""}
+    <div class="panel"><h2>Upcoming</h2>${upcoming.map(row).join("") || '<p class="muted">No shows synced yet — admin can sync from The Carton.</p>'}</div>
+    <div class="panel"><h2>Recent</h2>${(past||[]).map(row).join("") || '<p class="muted">Nothing yet.</p>'}</div>`;
+  timers.push(setInterval(() => {
+    document.querySelectorAll("[data-cd]").forEach(el => {
+      if (!el.dataset.cd) return;
+      const cd = countdown(el.dataset.cd);
+      el.textContent = cd ? "locks in " + cd : "locked";
+    });
+  }, 1000));
+}
+
+/* ---------------- pick sheet / show detail ---------------- */
+async function openShow(id){
+  clearTimers();
+  const { data: show } = await db.from("shows").select("*").eq("id", id).single();
+  currentShow = show;
+  const st = showState(show);
+  if (st === "open") renderPickSheet(show);
+  else renderShowDetail(show);
+}
+
+function slotDefs(){
+  const slots = (cfg.slots||[]).map(s => ({ key:s.key, label:s.label, pts:s.points }));
+  for (let i=1; i<=(cfg.flat_picks||0); i++) slots.push({ key:"flat"+i, label:"Pick "+i, pts:cfg.flat_points||1, flat:true });
+  return slots;
+}
+
+async function renderPickSheet(show){
+  let mine = [];
+  try{ mine = await rpc("get_my_picks", { p_name:session.name, p_pin:session.pin, p_show_id:show.id }); }catch(e){}
+  const val = k => esc((mine.find(p => p.slot===k)||{}).songname || "");
+  const slots = slotDefs();
+  const slotHtml = s => `
+    <div class="slotline autocomplete">
+      <label>${esc(s.label)}</label>
+      <input data-slot="${s.key}" value="${val(s.key)}" placeholder="song…" autocomplete="off" spellcheck="false">
+      <span class="pts">${s.pts} pt${s.pts===1?"":"s"}</span>
+    </div>`;
+  const structured = slots.filter(s=>!s.flat), flats = slots.filter(s=>s.flat);
+  // pre-scoring pick board: cutoff has passed, picks are public, but no scores yet
+  let pickBoard = "";
+  if (!(scores||[]).length && (picks||[]).length){
+    const slotOrder = slotDefs().map(sl => sl.key);
+    const slotLabel = Object.fromEntries(slotDefs().map(sl => [sl.key, sl.label]));
+    const byName = {};
+    for (const p of picks) (byName[p.player_name] ??= []).push(p);
+    pickBoard = `<h2 style="margin:18px 4px 4px">The picks are in</h2>` +
+      Object.entries(byName).sort((a,b) => a[0].localeCompare(b[0])).map(([name, pp]) => `
+        <div class="panel" style="padding:12px"><div class="row"><b>${esc(name)}</b></div>
+          ${pp.sort((a,b) => slotOrder.indexOf(a.slot) - slotOrder.indexOf(b.slot)).map(p => `
+            <div class="pickres"><span class="sl">${esc(slotLabel[p.slot] || p.slot)}</span>
+              <span>${esc(p.songname)}</span></div>`).join("")}
+        </div>`).join("");
+  }
+  $("#main").innerHTML = `
+    <p style="margin-top:14px"><button class="btn ghost small" onclick="renderShows()">← shows</button></p>
+    <div class="sheet">
+      <h2>${esc(show.venue||"TBA")}</h2>
+      <div class="sub">${fmtDate(show.showdate)} · ${esc(show.city||"")}${show.state?", "+esc(show.state):""}</div>
+      ${structured.map(slotHtml).join("")}
+      ${flats.length ? `<div class="divider">Anywhere in the show</div>${flats.map(slotHtml).join("")}` : ""}
+      <button class="savebtn" id="save">Lock 'em in</button>
+      <div class="countbig">Locks ${fmtCutoff(show.cutoff_at)} · <b id="cd"></b></div>
+      <div class="err" id="p-err" style="text-align:center"></div>
+    </div>`;
+  document.querySelectorAll(".slotline input").forEach(attachAutocomplete);
+  $("#save").onclick = savePicks;
+  timers.push(setInterval(() => {
+    const cd = countdown(show.cutoff_at);
+    if (cd) $("#cd").textContent = cd + " left";
+    else { toast("Picks are locked — enjoy the show 🥚"); openShow(show.id); }
+  }, 1000));
+}
+
+function attachAutocomplete(input){
+  let list = null, sel = -1;
+  const close = () => { list?.remove(); list = null; sel = -1; };
+  input.addEventListener("input", () => {
+    close();
+    const q = input.value.trim().toLowerCase();
+    if (q.length < 1) return;
+    const hits = songList.filter(s => s.songname.toLowerCase().includes(q)).slice(0, 8);
+    if (!hits.length) return;
+    list = document.createElement("div"); list.className = "acc-list";
+    hits.forEach(h => {
+      const d = document.createElement("div");
+      d.innerHTML = `${esc(h.songname)} <small>${h.times_played ?? "–"}×</small>`;
+      d.onmousedown = e => { e.preventDefault(); input.value = h.songname; close(); };
+      list.appendChild(d);
+    });
+    input.parentElement.appendChild(list);
   });
-})();
+  input.addEventListener("keydown", e => {
+    if (!list) return;
+    const items = [...list.children];
+    if (e.key === "ArrowDown"){ sel = Math.min(sel+1, items.length-1); }
+    else if (e.key === "ArrowUp"){ sel = Math.max(sel-1, 0); }
+    else if (e.key === "Enter"){ e.preventDefault(); if (sel>=0){ input.value = items[sel].textContent.replace(/\s*\S*×$/,"").trim(); } close(); return; }
+    else return;
+    items.forEach((it,i) => it.classList.toggle("sel", i===sel));
+  });
+  input.addEventListener("blur", () => setTimeout(close, 150));
+}
 
-/* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v21";
-document.querySelector(".sub").textContent += " · " + BUILD;
-console.log("Ambassadors build " + BUILD);
+async function savePicks(){
+  $("#p-err").textContent = "";
+  const picks = [...document.querySelectorAll(".slotline input")]
+    .map(i => ({ slot: i.dataset.slot, songname: i.value.trim() }))
+    .filter(p => p.songname);
+  // warn on unknown songs (typos) but allow — could be a debut call
+  const unknown = picks.filter(p => !songList.some(s => s.songname.toLowerCase() === p.songname.toLowerCase()));
+  if (unknown.length && !confirm(`Not in the catalog (typo, or a bold debut call?):\n${unknown.map(u=>u.songname).join("\n")}\n\nSave anyway?`)) return;
+  try{
+    await rpc("submit_picks", { p_name:session.name, p_pin:session.pin, p_show_id:currentShow.id, p_picks:picks });
+    toast("Picks saved ✔", "score");
+  }catch(e){ $("#p-err").textContent = e.message; }
+}
 
-/* Leaflet must re-measure its container whenever geometry settles or changes,
-   otherwise it renders a degenerate world-view strip */
-setTimeout(()=>{ map.invalidateSize(); if(markers.length) map.fitBounds(markers.map(m=>m.getLatLng()), {padding:[50,50]}); }, 400);
-window.addEventListener("resize", ()=>map.invalidateSize());
-window.addEventListener("orientationchange", ()=>setTimeout(()=>map.invalidateSize(), 250));
+async function renderShowDetail(show){
+  clearTimers();
+  const [{ data: setlist }, picks, { data: scores }, { data: plist }] = await Promise.all([
+    db.from("setlist_songs").select("*").eq("show_id", show.id).order("position"),
+    rpc("get_show_picks", { p_show_id: show.id }).catch(() => []),
+    db.from("scores").select("*").eq("show_id", show.id).order("points",{ascending:false}),
+    db.from("players_public").select("id,name"),
+  ]);
+  const pname = Object.fromEntries((plist||[]).map(p => [p.id, p.name]));
+  const mineHits = new Set((picks||[]).filter(p => p.player_id === session.id).map(p => p.songname.toLowerCase()));
+  const setHtml = (setlist||[]).map(s => `
+    <div class="songrow ${mineHits.has(s.songname.toLowerCase()) ? "hitmine" : ""}">
+      <span class="pos">${s.is_encore ? "E" : "S"+esc(s.setnumber)}·${s.position}</span>
+      <span class="name">${esc(s.songname)}</span>
+    </div>`).join("");
+  const scoreHtml = (scores||[]).map(sc => `
+    <div class="panel" style="padding:12px">
+      <div class="row"><b>${esc(pname[sc.player_id] || "?")}</b>
+        <span class="pts" style="margin-left:auto;font-family:var(--mono);color:var(--yolk)">${sc.points} pts</span></div>
+      ${(sc.breakdown||[]).map(b => `
+        <div class="pickres ${b.points>0?"hit":b.hit?"":"miss"}">
+          <span class="sl">${esc(b.slot)}</span><span>${esc(b.songname)}</span>
+          <span class="pt">${b.points>0?"+"+b.points:"·"} <small class="muted">${esc(b.reason)}</small></span>
+        </div>`).join("")}
+    </div>`).join("");
+  // pre-scoring pick board: cutoff has passed, picks are public, but no scores yet
+  let pickBoard = "";
+  if (!(scores||[]).length && (picks||[]).length){
+    const slotOrder = slotDefs().map(sl => sl.key);
+    const slotLabel = Object.fromEntries(slotDefs().map(sl => [sl.key, sl.label]));
+    const byName = {};
+    for (const p of picks) (byName[p.player_name] ??= []).push(p);
+    pickBoard = `<h2 style="margin:18px 4px 4px">The picks are in</h2>` +
+      Object.entries(byName).sort((a,b) => a[0].localeCompare(b[0])).map(([name, pp]) => `
+        <div class="panel" style="padding:12px"><div class="row"><b>${esc(name)}</b></div>
+          ${pp.sort((a,b) => slotOrder.indexOf(a.slot) - slotOrder.indexOf(b.slot)).map(p => `
+            <div class="pickres"><span class="sl">${esc(slotLabel[p.slot] || p.slot)}</span>
+              <span>${esc(p.songname)}</span></div>`).join("")}
+        </div>`).join("");
+  }
+  $("#main").innerHTML = `
+    <p style="margin-top:14px"><button class="btn ghost small" onclick="renderShows()">← shows</button>
+      <span class="pill ${showState(show)==='live'?'live':'final'}">${showState(show)==='final'?'complete':showState(show)}</span></p>
+    ${show.status==='final' && (scores||[]).length ? `<div class="panel" style="border-color:var(--yolk)">
+      <h2>👑 ${esc(pname[scores[0].player_id]||"?")} takes it</h2>
+      <p class="muted">${scores[0].points} points</p></div>` : ""}
+    <div class="panel"><h2>${esc(show.venue||"")} <span class="muted" style="font-size:.85rem">${fmtDate(show.showdate)}</span></h2>
+      ${setHtml || '<p class="muted">No setlist yet. It shows up here song-by-song once the tapers get typing.</p>'}</div>
+    ${pickBoard}
+    <h2 style="margin:18px 4px 4px">Scores</h2>
+    ${scoreHtml || '<p class="muted" style="margin:8px 4px">No scores yet — they appear with the first song.</p>'}`;
+}
 
-loadShows();
+/* ---------------- leaderboard ---------------- */
+async function renderBoard(){
+  clearTimers(); tab = "board"; markTab();
+  const [{ data }, { data: plist }] = await Promise.all([
+    db.from("scores").select("points, player_id"),
+    db.from("players_public").select("id,name"),
+  ]);
+  const pname = Object.fromEntries((plist||[]).map(p => [p.id, p.name]));
+  const totals = {};
+  (data||[]).forEach(s => {
+    const k = s.player_id;
+    totals[k] ??= { name: pname[k] || "?", pts: 0, shows: 0 };
+    totals[k].pts += s.points; totals[k].shows++;
+  });
+  const rows = Object.entries(totals).sort((a,b) => b[1].pts - a[1].pts);
+  $("#main").innerHTML = `
+    <div class="panel"><h2>Tour standings</h2>
+    <table class="lb"><tr><th></th><th>Player</th><th>Shows</th><th style="text-align:right">Pts</th></tr>
+    ${rows.map(([id,r],i) => `<tr class="${id===session.id?"me":""}">
+      <td class="rank">${i+1}</td><td>${esc(r.name)}</td><td class="muted">${r.shows}</td><td class="pts">${r.pts}</td></tr>`).join("")
+      || '<tr><td colspan="4" class="muted">No scores yet — pick some songs.</td></tr>'}
+    </table></div>`;
+}
 
-/* Legend: countdown order, real day counts, pulse explained below */
-document.getElementById("legend").innerHTML = [
-  [3,"90+ days"],[2,"&le;90 d"],[1,"&le;30 d"],[0,"&le;7 d"],[4,"Played"]
-].map(([t,label])=>`<span class="li">${eggSVG(t).replace('width="34" height="44"','width="15" height="19"')} ${label}</span>`).join("")
-+ `<span class="legend-note">Eggs pulse 3 days out, double-time on show day · hatched pins roost for 30 days</span>`;
+/* ---------------- admin ---------------- */
+async function renderAdmin(){
+  clearTimers(); tab = "admin"; markTab();
+  await loadConfig();
+  const b = cfg.bonuses || {};
+  const slotRows = (cfg.slots||[]).map((s,i) => adminSlotRow(s,i)).join("");
+  const { data: shows } = await db.from("shows").select("*").gte("showdate", new Date(Date.now()-7*864e5).toISOString().slice(0,10)).order("showdate");
+  $("#main").innerHTML = `
+    <div class="panel"><h2>Game rules</h2>
+      <p class="muted">Slotted picks (position matters):</p>
+      <div id="slots">${slotRows}</div>
+      <button class="btn ghost small" onclick="addSlot()">+ add slot</button>
+      <div class="grid2" style="margin-top:14px">
+        <div class="field"><label>Flat picks (count)</label><input id="c-flat" type="number" min="0" value="${cfg.flat_picks}"></div>
+        <div class="field"><label>Points per flat pick</label><input id="c-flatpts" type="number" min="0" value="${cfg.flat_points}"></div>
+        <div class="field"><label>Partial credit (slot song played elsewhere)</label>
+          <select id="c-partial"><option value="true" ${cfg.partial_credit?"selected":""}>On</option><option value="false" ${!cfg.partial_credit?"selected":""}>Off</option></select></div>
+        <div class="field"><label>Partial points</label><input id="c-partpts" type="number" min="0" value="${cfg.partial_points}"></div>
+        <div class="field"><label>Bonus: cover</label><input id="c-bcover" type="number" min="0" value="${b.cover||0}"></div>
+        <div class="field"><label>Bonus: debut</label><input id="c-bdebut" type="number" min="0" value="${b.debut||0}"></div>
+        <div class="field"><label>Allow duplicate songs across picks</label>
+          <select id="c-dupes"><option value="false" ${!cfg.allow_duplicates?"selected":""}>No</option><option value="true" ${cfg.allow_duplicates?"selected":""}>Yes</option></select></div>
+      </div>
+      <button class="btn" onclick="saveConfig()">Save rules</button>
+      <div class="err" id="cfg-err"></div>
+      <p class="muted" style="margin-top:6px">Rule changes apply on the next scoring run. Don't change mid-show unless you enjoy arguments.</p>
+    </div>
+    <div class="panel"><h2>Shows & cutoffs</h2>
+      <p class="muted">Times shown in your device timezone (${Intl.DateTimeFormat().resolvedOptions().timeZone}). Sync defaults new shows to 6 PM venue-local.</p>
+      ${(shows||[]).map(s => `<div class="showrow">
+        <div class="date">${fmtDate(s.showdate)}</div>
+        <div class="v"><div class="venue">${esc(s.venue||"TBA")}</div>
+          <div class="loc"><input type="datetime-local" data-show="${s.id}" value="${s.cutoff_at ? new Date(new Date(s.cutoff_at).getTime()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16) : ""}" style="background:var(--pit);border:1px solid var(--line2);color:var(--cream);border-radius:8px;padding:6px 8px;font-size:.8rem"></div></div>
+        <button onclick="saveCutoff(${s.id}, this)">Set</button>
+        ${s.status!=='final' && s.cutoff_at && new Date(s.cutoff_at) < new Date() ? '<button onclick="finalizeShow('+s.id+', this)" style="border-color:var(--coral);color:var(--coral)">Finalize</button>' : ''}
+      </div>`).join("") || '<p class="muted">No shows — sync first.</p>'}
+    </div>
+    <div class="panel"><h2>Who's picked</h2>
+      <div class="field"><label>Show</label>
+        <select id="roster-show" onchange="loadRoster()">
+          ${(shows||[]).map(s => `<option value="${s.id}">${fmtDate(s.showdate)} — ${esc(s.venue||"TBA")}</option>`).join("")}
+        </select></div>
+      <div id="roster"><p class="muted">Pick a show.</p></div>
+    </div>
+    <div class="panel"><h2>Data</h2>
+      <div class="row">
+        <button class="btn ghost small" onclick="runEdge('sync_shows', this)">Sync shows</button>
+        <button class="btn ghost small" onclick="runEdge('sync_songs', this)">Sync song catalog</button>
+        <button class="btn ghost small" onclick="runEdge('score', this)">Run scoring now</button>
+      </div>
+      <p class="muted" style="margin-top:8px">Scoring also runs automatically on the cron schedule. These are manual overrides.</p>
+    </div>`;
+  if ((shows||[]).length) loadRoster();
+}
+async function loadRoster(){
+  const showId = Number($("#roster-show").value);
+  if (!showId) return;
+  try{
+    const rows = await rpc("admin_pick_status", { p_name:session.name, p_pin:session.pin, p_show_id:showId });
+    const total = rows.length, done = rows.filter(r => r.picks_count > 0).length;
+    $("#roster").innerHTML = `
+      <p class="muted" style="margin-bottom:6px"><b style="color:var(--mint)">${done}</b> of ${total} players have picks in</p>
+      ${rows.map(r => `<div class="pickres ${r.picks_count>0?"hit":"miss"}">
+        <span>${r.picks_count>0?"✔":"—"}</span><span>${esc(r.player_name)}</span>
+        <span class="pt">${r.picks_count>0
+          ? r.picks_count+" picks · saved "+new Date(r.last_saved).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})
+          : "no picks yet"}</span>
+      </div>`).join("")}`;
+  }catch(e){ $("#roster").innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+}
+const SLOT_TYPES = {
+  opener: "Opener — first song of the show",
+  set1_closer: "Set 1 closer",
+  set2_opener: "Set 2 opener",
+  closer: "Closer — last pre-encore song",
+  encore: "Encore — any encore song",
+  show_closer: "Show closer — final song of the night",
+};
+function adminSlotRow(s, i){
+  const opts = Object.entries(SLOT_TYPES).map(([k,d]) =>
+    `<option value="${k}" ${k===s.key?"selected":""}>${d}</option>`).join("");
+  return `<div class="admin-slot" data-i="${i}">
+    <select class="k" title="which position this slot scores against">${opts}</select>
+    <input class="k" placeholder="Label players see" value="${esc(s.label)}">
+    <input class="p" type="number" min="0" value="${s.points}">
+    <button class="btn ghost small" onclick="this.parentElement.remove()">✕</button></div>`;
+}
+function addSlot(){ $("#slots").insertAdjacentHTML("beforeend", adminSlotRow({key:"encore",label:"",points:2}, 99)); }
+async function saveConfig(){
+  $("#cfg-err").textContent = "";
+  const slots = [...document.querySelectorAll(".admin-slot")].map(r => {
+    const k = r.querySelector("select.k").value;
+    const [l, p] = r.querySelectorAll("input");
+    return { key: k, label: l.value.trim(), points: Number(p.value) };
+  }).filter(s => s.key && s.label);
+  const keys = slots.map(s => s.key);
+  if (new Set(keys).size !== keys.length){
+    $("#cfg-err").textContent = "Each slot type can only be used once."; return;
+  }
+  const data = {
+    slots,
+    flat_picks: Number($("#c-flat").value), flat_points: Number($("#c-flatpts").value),
+    partial_credit: $("#c-partial").value === "true", partial_points: Number($("#c-partpts").value),
+    allow_duplicates: $("#c-dupes").value === "true",
+    bonuses: { cover: Number($("#c-bcover").value), debut: Number($("#c-bdebut").value), jamchart: 0 },
+  };
+  try{
+    await rpc("admin_update_config", { p_name:session.name, p_pin:session.pin, p_data:data });
+    cfg = data; toast("Rules saved ✔", "score");
+  }catch(e){ $("#cfg-err").textContent = e.message; }
+}
+async function saveCutoff(showId, btn){
+  const input = document.querySelector(`input[data-show="${showId}"]`);
+  if (!input.value) return;
+  try{
+    await rpc("admin_set_cutoff", { p_name:session.name, p_pin:session.pin, p_show_id:showId, p_cutoff:new Date(input.value).toISOString() });
+    btn.textContent = "✔"; setTimeout(() => btn.textContent = "Set", 1500);
+  }catch(e){ toast(e.message); }
+}
+async function finalizeShow(showId, btn){
+  if (!confirm("Run final scoring and mark this show complete? Picks and scores lock for good.")) return;
+  btn.disabled = true; btn.textContent = "…";
+  try{
+    await edgeFn("score").catch(() => {});
+    await rpc("admin_set_show_status", { p_name:session.name, p_pin:session.pin, p_show_id:showId, p_status:"final" });
+    toast("Show finalized 🏁", "score");
+    renderAdmin();
+  }catch(e){ toast(e.message); btn.disabled = false; btn.textContent = "Finalize"; }
+}
+async function runEdge(action, btn){
+  btn.disabled = true; const old = btn.textContent; btn.textContent = "…";
+  try{ const r = await edgeFn(action); toast(JSON.stringify(r).slice(0,120), "score"); if(action==="sync_songs") loadSongs(); }
+  catch(e){ toast(e.message); }
+  btn.disabled = false; btn.textContent = old;
+}
+
+/* ---------------- realtime ---------------- */
+const myLastPts = {};
+function subscribeRealtime(){
+  db.channel("live")
+    .on("postgres_changes", { event:"INSERT", schema:"public", table:"setlist_songs" }, p => {
+      const s = p.new;
+      toast(`🎵 ${s.songname}${s.is_encore ? " (encore)" : ""}`, "", `song:${s.show_id}:${(s.songname||"").toLowerCase()}`);
+      if (currentShow && tab !== "admin" && s.show_id === currentShow.id) openShow(currentShow.id);
+    })
+    .on("postgres_changes", { event:"*", schema:"public", table:"scores" }, p => {
+      if (p.new?.player_id === session?.id && myLastPts[p.new.show_id] !== p.new.points){
+        myLastPts[p.new.show_id] = p.new.points;
+        toast(`You're at ${p.new.points} pts for this show`, "score");
+      }
+      if (tab === "board") renderBoard();
+    })
+    .subscribe();
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && session) refreshCurrent();
+  });
+}
+function refreshCurrent(){
+  if (tab === "board") renderBoard();
+  else if (tab === "admin") renderAdmin();
+  else if (currentShow) openShow(currentShow.id);
+  else renderShows();
+}
+
+/* ---------------- tabs ---------------- */
+function markTab(){
+  document.querySelectorAll("nav.tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+}
+document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => {
+  ({ shows: renderShows, board: renderBoard, admin: renderAdmin })[b.dataset.tab]();
+});
+
+boot();
 </script>
 </body>
 </html>
