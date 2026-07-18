@@ -5,6 +5,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ambassadors — Eggy Tour Map</title>
+<meta name="theme-color" content="#FDF8EF">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2034%2044%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M17%201C24.5%201%2032%2014%2032%2025.5%2032%2034.6%2025.3%2041%2017%2041%208.7%2041%202%2034.6%202%2025.5%202%2014%209.5%201%2017%201Z%22%20fill%3D%22%23FDF8EF%22%20stroke%3D%22%233B2E1E%22%20stroke-width%3D%222.2%22/%3E%3Ccircle%20cx%3D%2217%22%20cy%3D%2226%22%20r%3D%227.5%22%20fill%3D%22%23F5A623%22%20stroke%3D%22%23E08A00%22%20stroke-width%3D%221.5%22/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,6 +26,35 @@
     --font-display:"Fraunces", Georgia, serif;
     --font-body:"Nunito Sans", system-ui, -apple-system, sans-serif;
   }
+  [data-theme="dark"]{
+    --shell:#201812;
+    --card:#2B211A;
+    --ink:#F3EAD8;
+    --ink-soft:#B9AB92;
+    --line:#3E3428;
+    --going:#6BBFAC;
+    --tomato:#F07B57;
+  }
+  [data-theme="dark"] #datasource{background:#2B211A}
+  [data-theme="dark"] #datasource.live{background:#1E332E;border-color:#2E4A43}
+  [data-theme="dark"] .show .fest{background:#3A2B14}
+  [data-theme="dark"] .show .fest.bill{background:#1E332E}
+  [data-theme="dark"] .st-going{background:#1E332E}
+  [data-theme="dark"] .st-maybe{background:#3A2B14}
+  [data-theme="dark"] .st-out{background:#352C20}
+  [data-theme="dark"] .phase2{background:#332714}
+  [data-theme="dark"] #drawer .head{background:linear-gradient(180deg,#33271A,#2B211A)}
+  [data-theme="dark"] .leg::before,[data-theme="dark"] .leg::after{border-top-color:#4A3E2E}
+  [data-theme="dark"] #listToggle{background:#4A3E2E}
+  [data-theme="dark"] .rsvp.sel-out{background:#4A3E2E;border-color:#5A4C38;color:var(--ink)}
+  [data-theme="dark"] .rsvp.sel-maybe{color:#2B1F0E}
+  [data-theme="dark"] #map,[data-theme="dark"] #radarMap{background:#181512}
+
+  #themeBtn{
+    margin-left:auto;background:none;border:1px solid var(--line);border-radius:50%;
+    width:36px;height:36px;font-size:1rem;cursor:pointer;flex:0 0 auto;line-height:1;
+  }
+  #themeBtn:focus-visible{outline:3px solid var(--yolk)}
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{
@@ -218,6 +249,13 @@
   .wx-meta{font-size:.68rem;font-weight:700;color:var(--ink-soft);margin-top:2px}
   #radarMap{height:220px;border:1px solid var(--line);border-radius:12px;background:#EAE3D2}
   .radar-ctl{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .wx-hours{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;margin-top:6px}
+  .wx-hour{flex:0 0 60px;background:var(--shell);border:1px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center}
+  .wx-hr{font-size:.62rem;font-weight:800;text-transform:uppercase;color:var(--tomato)}
+  .wx-hicon{font-size:1.15rem;line-height:1.4}
+  .wx-htemp{font-family:var(--font-display);font-weight:800;font-size:.95rem}
+  .wx-hmeta{font-size:.6rem;font-weight:700;color:var(--ink-soft)}
+  .traffic{width:100%;height:230px;border:1px solid var(--line);border-radius:12px;background:var(--shell)}
 
   /* ---------- Route arrows & venue photo ---------- */
   .route-arrow{pointer-events:none}
@@ -294,6 +332,7 @@
           <circle cx="17" cy="26" r="7.5" fill="#F5A623" stroke="#E08A00" stroke-width="1.5"/>
         </svg>
         <h1>Ambassadors</h1>
+        <button id="themeBtn" aria-label="Cycle theme"></button>
       </div>
       <div class="sub">Eggy tour map &amp; crew planner</div>
       <div id="legend" aria-label="Pin legend"></div>
@@ -343,7 +382,7 @@
    (the sb_publishable_... one; it is SAFE to be public.
     NEVER put a secret key here.) */
 const SUPA_URL = "https://zvwsstgnjhlybnbtvibg.supabase.co";
-const SUPA_KEY = "PASTE_PUBLISHABLE_KEY_HERE";
+const SUPA_KEY = "sb_publishable_lzLNa98Cn3jP_p_rVeQTHA_xijvODQv";
 /* ======================================================= */
 
 const BIT_ARTIST = "id_2356753";           // Eggy on Bandsintown
@@ -367,26 +406,35 @@ const FALLBACK = [
 const map = L.map("map", {zoomControl:false}).setView([39.5, -84], 5);
 L.control.zoom({position:"bottomright"}).addTo(map);
 const routeLayer = L.layerGroup().addTo(map);
-/* Primary tiles: CARTO Voyager. If those are blocked (ad blocker /
-   web filter), fall back to openstreetmap.org automatically. */
-let tileErrors = 0, tilesSwapped = false;
+/* Primary tiles: CARTO (voyager light / dark_all dark). If blocked
+   (ad blocker / web filter), fall back to openstreetmap.org. */
+const TILE_LIGHT = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+const TILE_DARK  = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+let tileErrors = 0, tilesSwapped = false, baseLayer = null;
 const osmFallback = () => L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   maxZoom:19
 }).addTo(map);
-const cartoLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  maxZoom:19
-}).addTo(map);
-cartoLayer.on("tileerror", ()=>{
-  tileErrors++;
-  if(tileErrors >= 3 && !tilesSwapped){
-    tilesSwapped = true;
-    console.warn("CARTO tiles unreachable — switching to openstreetmap.org");
-    map.removeLayer(cartoLayer);
-    osmFallback();
-  }
-});
+function baseTiles(){
+  if(tilesSwapped) return;   /* OSM fallback active; it has no dark twin */
+  if(baseLayer) map.removeLayer(baseLayer);
+  const dark = document.documentElement.dataset.theme === "dark";
+  baseLayer = L.tileLayer(dark ? TILE_DARK : TILE_LIGHT, {
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom:19
+  });
+  baseLayer.on("tileerror", ()=>{
+    tileErrors++;
+    if(tileErrors >= 3 && !tilesSwapped){
+      tilesSwapped = true;
+      console.warn("CARTO tiles unreachable — switching to openstreetmap.org");
+      map.removeLayer(baseLayer);
+      osmFallback();
+    }
+  });
+  baseLayer.addTo(map);
+}
+baseTiles();
 
 /* Egg "hatches" as the show gets closer:
    tier 0 = this week / happening now (big crack, pulsing)
@@ -787,6 +835,8 @@ function select(i, fly){
     <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Google Calendar</a>
     <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Venue on Google Maps</a>
     <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Directions to venue</a>
+    <div class="row" style="margin-top:14px"><div class="lbl">Traffic near the venue (live)</div></div>
+    <iframe class="traffic" src="https://embed.waze.com/iframe?zoom=13&lat=${show.lat}&lon=${show.lng}&pin=1" loading="lazy" title="Live Waze traffic near ${esc(show.venue)}"></iframe>
     <p class="hint">Dates refresh from Bandsintown every time this page loads, so new announcements appear and cancellations drop off automatically. Always confirm against <a href="https://eggymusic.com/tour/" target="_blank" rel="noopener">eggymusic.com/tour</a> before booking travel.</p>`;
 
   document.getElementById("pLodging").innerHTML = `
@@ -1029,6 +1079,9 @@ const wmo = code => {
 
 async function renderWeather(show){
   stopRadar();
+  /* the panel rebuild below destroys #radarMap's DOM node, so the old
+     Leaflet instance must be torn down or radar only works once */
+  if(radarMap){ radarMap.remove(); radarMap = null; radarLayers = []; radarFrames = []; }
   const p = document.getElementById("pWeather");
   const radarBlock = `
     <div class="row" style="margin-top:16px"><div class="lbl">Radar near the venue (live)</div></div>
@@ -1054,32 +1107,62 @@ async function renderWeather(show){
     return;
   }
 
+  const singleNight = !show.festival && !show.endDate;
   p.innerHTML = `<div class="row"><div class="lbl">Forecast — ${esc(show.city)}, ${esc(show.state)}</div>
-    <div id="wxDays" class="wx-days">loading forecast…</div></div>` + radarBlock;
+    <div id="wxDays" class="wx-days">loading forecast…</div></div>`
+    + (singleNight ? `<div class="row"><div class="lbl">Show night · 5 PM – 2 AM</div>
+       <div id="wxHours" class="wx-hours">loading…</div></div>` : ``)
+    + radarBlock;
   wireRadar(show);
 
   try{
     const start = show.date < todayStr() ? todayStr() : show.date;
     let end = show.endDate || show.date;
+    if(singleNight) end = addDays(show.date, 1);   /* hourly runs past midnight */
     if(end > horizon) end = horizon;
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${show.lat}&longitude=${show.lng}`
-      + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max`
+      + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean`
+      + (singleNight ? `&hourly=temperature_2m,precipitation_probability,weather_code` : ``)
       + `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`
       + `&start_date=${start}&end_date=${end}`;
     const r = await fetch(url);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const d = await r.json();
+
+    /* daily cards — only days of the show itself, not the hourly spillover day */
+    const lastShowDay = show.endDate || show.date;
     const days = d.daily.time.map((t,i)=>{
+      if(t > lastShowDay) return "";
       const [icon,label] = wmo(d.daily.weather_code[i]);
+      const hum = d.daily.relative_humidity_2m_mean ? Math.round(d.daily.relative_humidity_2m_mean[i]) : null;
       return `<div class="wx-day">
         <div class="wx-date">${new Date(t+"T12:00:00").toLocaleDateString("en-US",{weekday:"short", month:"short", day:"numeric"})}</div>
         <div class="wx-icon">${icon}</div>
         <div class="wx-label">${label}</div>
         <div class="wx-temp">${Math.round(d.daily.temperature_2m_max[i])}° / ${Math.round(d.daily.temperature_2m_min[i])}°</div>
-        <div class="wx-meta">💧 ${d.daily.precipitation_probability_max[i] ?? "–"}% · 💨 ${Math.round(d.daily.wind_speed_10m_max[i])} mph</div>
+        <div class="wx-meta">☔ ${d.daily.precipitation_probability_max[i] ?? "–"}%${hum !== null ? ` · 💧 ${hum}%` : ""} · 💨 ${Math.round(d.daily.wind_speed_10m_max[i])} mph</div>
       </div>`;
     }).join("");
     document.getElementById("wxDays").innerHTML = days;
+
+    /* show-night hourly strip: 5 PM through 2 AM, venue local time */
+    if(singleNight && d.hourly){
+      const from = show.date + "T17:00";
+      const to = addDays(show.date,1) + "T02:00";
+      const cells = d.hourly.time.map((t,i)=>{
+        if(t < from || t > to) return "";
+        const [icon] = wmo(d.hourly.weather_code[i]);
+        const hr = new Date(t).toLocaleTimeString("en-US",{hour:"numeric"});
+        return `<div class="wx-hour">
+          <div class="wx-hr">${hr}</div>
+          <div class="wx-hicon">${icon}</div>
+          <div class="wx-htemp">${Math.round(d.hourly.temperature_2m[i])}°</div>
+          <div class="wx-hmeta">☔${d.hourly.precipitation_probability[i] ?? "–"}%</div>
+        </div>`;
+      }).join("");
+      const hEl = document.getElementById("wxHours");
+      if(hEl) hEl.innerHTML = cells || `<span class="hint">Hourly detail not available yet.</span>`;
+    }
   }catch(err){
     console.warn("Open-Meteo fetch failed:", err);
     const el = document.getElementById("wxDays");
@@ -1104,7 +1187,8 @@ async function initRadar(show){
   if(!el) return;
   if(!radarMap){
     radarMap = L.map("radarMap", {zoomControl:false, attributionControl:false});
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {maxZoom:12}).addTo(radarMap);
+    const dark = document.documentElement.dataset.theme === "dark";
+    L.tileLayer(dark ? TILE_DARK : TILE_LIGHT, {maxZoom:12}).addTo(radarMap);
   }
   radarMap.setView([show.lat, show.lng], 7);
   setTimeout(()=>radarMap.invalidateSize(), 120);
@@ -1198,10 +1282,59 @@ document.getElementById("listToggle").addEventListener("click", ()=>{
 });
 /* On phones the tiny pill is a hard target — let the whole header toggle too */
 document.querySelector("header").addEventListener("click", (e)=>{
-  if(window.innerWidth <= 820 && !e.target.closest("a")){
+  if(window.innerWidth <= 820 && !e.target.closest("a, #themeBtn")){
     document.getElementById("sidebar").classList.toggle("up");
   }
 });
+
+/* ============ Theme: auto follows the phone live; light/dark pin ============ */
+const sysLight = matchMedia("(prefers-color-scheme: light)");
+let themeMode = localStorage.getItem("amb_theme") || "auto";
+function applyTheme(){
+  const eff = themeMode === "auto" ? (sysLight.matches ? "light" : "dark") : themeMode;
+  document.documentElement.dataset.theme = eff;
+  const b = document.getElementById("themeBtn");
+  if(b){
+    b.textContent = themeMode === "auto" ? "🌗" : themeMode === "light" ? "☀️" : "🌙";
+    b.title = "theme: " + themeMode + (themeMode === "auto" ? " (follows your phone)" : "");
+  }
+  const m = document.querySelector('meta[name="theme-color"]');
+  if(m) m.content = eff === "light" ? "#FDF8EF" : "#201812";
+  baseTiles();
+}
+document.getElementById("themeBtn").addEventListener("click", (e)=>{
+  e.stopPropagation();   /* don't toggle the mobile sheet */
+  themeMode = {auto:"light", light:"dark", dark:"auto"}[themeMode] || "auto";
+  localStorage.setItem("amb_theme", themeMode);
+  applyTheme();
+});
+sysLight.addEventListener("change", ()=>{ if(themeMode === "auto") applyTheme(); });
+applyTheme();
+
+/* ============ Swipe / arrow-key navigation between shows ============ */
+(function(){
+  const dr = document.getElementById("drawer");
+  let sx = null, sy = null;
+  dr.addEventListener("touchstart", e=>{ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+  dr.addEventListener("touchend", e=>{
+    if(sx === null) return;
+    /* don't hijack horizontally-scrolling or pannable elements */
+    if(e.target.closest("#radarMap, .wx-hours, .chat-box, input, textarea")){ sx = null; return; }
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    sx = null;
+    if(Math.abs(dx) > 60 && Math.abs(dx) > 2*Math.abs(dy) && activeIdx !== null){
+      const next = activeIdx + (dx < 0 ? 1 : -1);
+      if(next >= 0 && next < SHOWS.length) select(next, true);
+    }
+  }, {passive:true});
+  document.addEventListener("keydown", e=>{
+    if(activeIdx === null || !document.getElementById("drawer").classList.contains("open")) return;
+    if(e.target.matches("input, textarea")) return;
+    if(e.key === "ArrowRight" && activeIdx < SHOWS.length-1) select(activeIdx+1, true);
+    if(e.key === "ArrowLeft"  && activeIdx > 0) select(activeIdx-1, true);
+  });
+})();
 
 /* Bottom-sheet swipe gestures (mobile):
    collapsed + swipe up  -> expand
@@ -1230,7 +1363,7 @@ document.querySelector("header").addEventListener("click", (e)=>{
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v21";
+const BUILD = "v23";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
