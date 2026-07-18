@@ -845,8 +845,9 @@ function select(i, fly){
     <a class="btn" href="${L2.booking}" target="_blank" rel="noopener">Hotels on Booking.com</a>
     <a class="btn" href="${L2.hotelsNear}" target="_blank" rel="noopener">Hotels near the venue (map)</a>
     <div class="row" style="margin-top:18px"><div class="lbl">Pre-show fuel</div></div>
-    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("pizza near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍕 Pizza near the venue</a>
-    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("burgers near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍔 Burgers near the venue</a>
+    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("pizza near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍕 Pizza</a>
+    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("burgers near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍔 Burgers</a>
+    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("dispensary near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🌿Dispos</a>
     <p class="hint">Lodging links open searches already filtered to this show's night and city, so only available places show up. Set the group size once you're there — it defaults to 4 adults.</p>`;
 
   renderCrew(show);
@@ -1363,7 +1364,7 @@ applyTheme();
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v23";
+const BUILD = "v24";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
