@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ambassadors — Eggy Tour Map</title>
 <meta name="theme-color" content="#FDF8EF">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2034%2044%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M17%201C24.5%201%2032%2014%2032%2025.5%2032%2034.6%2025.3%2041%2017%2041%208.7%2041%202%2034.6%202%2025.5%202%2014%209.5%201%2017%201Z%22%20fill%3D%22%23FDF8EF%22%20stroke%3D%22%233B2E1E%22%20stroke-width%3D%222.2%22/%3E%3Ccircle%20cx%3D%2217%22%20cy%3D%2226%22%20r%3D%227.5%22%20fill%3D%22%23F5A623%22%20stroke%3D%22%23E08A00%22%20stroke-width%3D%221.5%22/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -249,13 +249,18 @@
   .wx-meta{font-size:.68rem;font-weight:700;color:var(--ink-soft);margin-top:2px}
   #radarMap{height:220px;border:1px solid var(--line);border-radius:12px;background:#EAE3D2}
   .radar-ctl{display:flex;align-items:center;gap:10px;margin-top:8px}
-  .wx-hours{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;margin-top:6px}
-  .wx-hour{flex:0 0 60px;background:var(--shell);border:1px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center}
+  .wx-hours{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:6px;margin-top:6px}
+  .wx-hour{background:var(--shell);border:1px solid var(--line);border-radius:10px;padding:7px 2px;text-align:center}
   .wx-hr{font-size:.62rem;font-weight:800;text-transform:uppercase;color:var(--tomato)}
   .wx-hicon{font-size:1.15rem;line-height:1.4}
   .wx-htemp{font-family:var(--font-display);font-weight:800;font-size:.95rem}
   .wx-hmeta{font-size:.6rem;font-weight:700;color:var(--ink-soft)}
-  .traffic{width:100%;height:230px;border:1px solid var(--line);border-radius:12px;background:var(--shell)}
+  /* crop the Waze embed's search bar: iframe runs taller than the
+     window and is shifted up so only the map shows */
+  .traffic-wrap{height:230px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--shell)}
+  .traffic{width:100%;height:300px;border:0;margin-top:-64px}
+  .wx-day.after{opacity:.85}
+  .wx-day.after .wx-date{color:var(--ink-soft)}
 
   /* ---------- Route arrows & venue photo ---------- */
   .route-arrow{pointer-events:none}
@@ -836,7 +841,7 @@ function select(i, fly){
     <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Venue on Google Maps</a>
     <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Directions to venue</a>
     <div class="row" style="margin-top:14px"><div class="lbl">Traffic near the venue (live)</div></div>
-    <iframe class="traffic" src="https://embed.waze.com/iframe?zoom=13&lat=${show.lat}&lon=${show.lng}&pin=1" loading="lazy" title="Live Waze traffic near ${esc(show.venue)}"></iframe>
+    <div class="traffic-wrap"><iframe class="traffic" src="https://embed.waze.com/iframe?zoom=13&lat=${show.lat}&lon=${show.lng}&pin=1" loading="lazy" title="Live Waze traffic near ${esc(show.venue)}"></iframe></div>
     <p class="hint">Dates refresh from Bandsintown every time this page loads, so new announcements appear and cancellations drop off automatically. Always confirm against <a href="https://eggymusic.com/tour/" target="_blank" rel="noopener">eggymusic.com/tour</a> before booking travel.</p>`;
 
   document.getElementById("pLodging").innerHTML = `
@@ -1111,33 +1116,33 @@ async function renderWeather(show){
   const singleNight = !show.festival && !show.endDate;
   p.innerHTML = `<div class="row"><div class="lbl">Forecast — ${esc(show.city)}, ${esc(show.state)}</div>
     <div id="wxDays" class="wx-days">loading forecast…</div></div>`
-    + (singleNight ? `<div class="row"><div class="lbl">Show night · 5 PM – 2 AM</div>
+    + (singleNight ? `<div class="row"><div class="lbl">Show night · 3 PM – 3 AM</div>
        <div id="wxHours" class="wx-hours">loading…</div></div>` : ``)
     + radarBlock;
   wireRadar(show);
 
   try{
     const start = show.date < todayStr() ? todayStr() : show.date;
-    let end = show.endDate || show.date;
-    if(singleNight) end = addDays(show.date, 1);   /* hourly runs past midnight */
+    /* always fetch one day past the show — you're pry spending the night */
+    let end = addDays(show.endDate || show.date, 1);
     if(end > horizon) end = horizon;
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${show.lat}&longitude=${show.lng}`
       + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean`
-      + (singleNight ? `&hourly=temperature_2m,precipitation_probability,weather_code` : ``)
+      + (singleNight ? `&hourly=temperature_2m,precipitation_probability,weather_code,relative_humidity_2m` : ``)
       + `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`
       + `&start_date=${start}&end_date=${end}`;
     const r = await fetch(url);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const d = await r.json();
 
-    /* daily cards — only days of the show itself, not the hourly spillover day */
+    /* daily cards — show days plus the getaway day, subtly dimmed */
     const lastShowDay = show.endDate || show.date;
     const days = d.daily.time.map((t,i)=>{
-      if(t > lastShowDay) return "";
+      const after = t > lastShowDay;
       const [icon,label] = wmo(d.daily.weather_code[i]);
       const hum = d.daily.relative_humidity_2m_mean ? Math.round(d.daily.relative_humidity_2m_mean[i]) : null;
-      return `<div class="wx-day">
-        <div class="wx-date">${new Date(t+"T12:00:00").toLocaleDateString("en-US",{weekday:"short", month:"short", day:"numeric"})}</div>
+      return `<div class="wx-day${after ? " after" : ""}">
+        <div class="wx-date">${new Date(t+"T12:00:00").toLocaleDateString("en-US",{weekday:"short", month:"short", day:"numeric"})}${after ? " · getaway" : ""}</div>
         <div class="wx-icon">${icon}</div>
         <div class="wx-label">${label}</div>
         <div class="wx-temp">${Math.round(d.daily.temperature_2m_max[i])}° / ${Math.round(d.daily.temperature_2m_min[i])}°</div>
@@ -1146,19 +1151,21 @@ async function renderWeather(show){
     }).join("");
     document.getElementById("wxDays").innerHTML = days;
 
-    /* show-night hourly strip: 5 PM through 2 AM, venue local time */
+    /* show-night hourly grid: 3 PM through 3 AM, venue local time */
     if(singleNight && d.hourly){
-      const from = show.date + "T17:00";
-      const to = addDays(show.date,1) + "T02:00";
+      const from = show.date + "T15:00";
+      const to = addDays(show.date,1) + "T03:00";
       const cells = d.hourly.time.map((t,i)=>{
         if(t < from || t > to) return "";
         const [icon] = wmo(d.hourly.weather_code[i]);
         const hr = new Date(t).toLocaleTimeString("en-US",{hour:"numeric"});
+        const hh = d.hourly.relative_humidity_2m ? Math.round(d.hourly.relative_humidity_2m[i]) : null;
         return `<div class="wx-hour">
           <div class="wx-hr">${hr}</div>
           <div class="wx-hicon">${icon}</div>
           <div class="wx-htemp">${Math.round(d.hourly.temperature_2m[i])}°</div>
-          <div class="wx-hmeta">☔${d.hourly.precipitation_probability[i] ?? "–"}%</div>
+          <div class="wx-hmeta">☔ ${d.hourly.precipitation_probability[i] ?? "–"}%</div>
+          ${hh !== null ? `<div class="wx-hmeta">💧 ${hh}%</div>` : ""}
         </div>`;
       }).join("");
       const hEl = document.getElementById("wxHours");
@@ -1364,7 +1371,7 @@ applyTheme();
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v24";
+const BUILD = "v26";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
