@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -255,10 +256,11 @@
   .wx-hicon{font-size:1.15rem;line-height:1.4}
   .wx-htemp{font-family:var(--font-display);font-weight:800;font-size:.95rem}
   .wx-hmeta{font-size:.6rem;font-weight:700;color:var(--ink-soft)}
-  /* crop the Waze embed's search bar: iframe runs taller than the
-     window and is shifted up so only the map shows */
-  .traffic-wrap{height:230px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--shell)}
-  .traffic{width:100%;height:300px;border:0;margin-top:-64px}
+  /* aggressively crop the Waze embed: iframe runs much taller than its
+     window and is pulled up so BOTH the top search bar and the bottom
+     link/logo row fall outside the visible frame — map only */
+  .traffic-wrap{height:210px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--shell);position:relative}
+  .traffic{width:100%;height:430px;border:0;position:absolute;top:-112px;left:0}
   .wx-day.after{opacity:.85}
   .wx-day.after .wx-date{color:var(--ink-soft)}
 
@@ -850,8 +852,8 @@ function select(i, fly){
     <a class="btn" href="${L2.booking}" target="_blank" rel="noopener">Hotels on Booking.com</a>
     <a class="btn" href="${L2.hotelsNear}" target="_blank" rel="noopener">Hotels near the venue (map)</a>
     <div class="row" style="margin-top:18px"><div class="lbl">Pre-show fuel</div></div>
-    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("pizza near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍕 Pizza</a>
-    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("burgers near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍔 Burgers</a>
+    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("pizza near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍕 Pizza near the venue</a>
+    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("burgers near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍔 Burgers near the venue</a>
     <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("dispensary near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🌿Dispos</a>
     <p class="hint">Lodging links open searches already filtered to this show's night and city, so only available places show up. Set the group size once you're there — it defaults to 4 adults.</p>`;
 
@@ -1116,7 +1118,7 @@ async function renderWeather(show){
   const singleNight = !show.festival && !show.endDate;
   p.innerHTML = `<div class="row"><div class="lbl">Forecast — ${esc(show.city)}, ${esc(show.state)}</div>
     <div id="wxDays" class="wx-days">loading forecast…</div></div>`
-    + (singleNight ? `<div class="row"><div class="lbl">Show night · 3 PM – 3 AM</div>
+    + (singleNight ? `<div class="row"><div class="lbl">Show Day Hourly</div>
        <div id="wxHours" class="wx-hours">loading…</div></div>` : ``)
     + radarBlock;
   wireRadar(show);
@@ -1142,7 +1144,7 @@ async function renderWeather(show){
       const [icon,label] = wmo(d.daily.weather_code[i]);
       const hum = d.daily.relative_humidity_2m_mean ? Math.round(d.daily.relative_humidity_2m_mean[i]) : null;
       return `<div class="wx-day${after ? " after" : ""}">
-        <div class="wx-date">${new Date(t+"T12:00:00").toLocaleDateString("en-US",{weekday:"short", month:"short", day:"numeric"})}${after ? " · getaway" : ""}</div>
+        <div class="wx-date">${new Date(t+"T12:00:00").toLocaleDateString("en-US",{weekday:"short", month:"short", day:"numeric"})}</div>
         <div class="wx-icon">${icon}</div>
         <div class="wx-label">${label}</div>
         <div class="wx-temp">${Math.round(d.daily.temperature_2m_max[i])}° / ${Math.round(d.daily.temperature_2m_min[i])}°</div>
@@ -1154,7 +1156,7 @@ async function renderWeather(show){
     /* show-night hourly grid: 3 PM through 3 AM, venue local time */
     if(singleNight && d.hourly){
       const from = show.date + "T15:00";
-      const to = addDays(show.date,1) + "T03:00";
+      const to = addDays(show.date,1) + "T02:00";
       const cells = d.hourly.time.map((t,i)=>{
         if(t < from || t > to) return "";
         const [icon] = wmo(d.hourly.weather_code[i]);
@@ -1371,7 +1373,7 @@ applyTheme();
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v26";
+const BUILD = "v27";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
