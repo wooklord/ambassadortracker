@@ -50,6 +50,10 @@
   [data-theme="dark"] .rsvp.sel-out{background:#4A3E2E;border-color:#5A4C38;color:var(--ink)}
   [data-theme="dark"] .rsvp.sel-maybe{color:#2B1F0E}
   [data-theme="dark"] #map,[data-theme="dark"] #radarMap{background:#181512}
+  [data-theme="dark"] .leg .mi{color:#F0A44E}
+  [data-theme="dark"] .leg a{color:#F0A44E;border-bottom-color:#F0A44E}
+  [data-theme="dark"] .leaflet-control-attribution{background:rgba(24,21,18,.75);color:#8A7C68}
+  [data-theme="dark"] .leaflet-control-attribution a{color:#A89A82}
 
   #themeBtn{
     margin-left:auto;background:none;border:1px solid var(--line);border-radius:50%;
@@ -321,6 +325,8 @@
     }
     header{padding-top:6px;cursor:pointer}
     #drawer{width:100%;position:fixed;z-index:900}
+    /* pinch-to-zoom covers this on touch; the buttons are just clutter */
+    .leaflet-control-zoom{display:none}
   }
   @media (prefers-reduced-motion:reduce){
     *{transition:none !important;animation:none !important}
@@ -800,7 +806,7 @@ async function buildRoute(){
         const mi = leg.distance/1609.34;
         el.innerHTML = mi < 1
           ? `same spot as last show`
-          : `🚗 <span class="mi">${Math.round(mi)} mi</span> · ${fmtDur(leg.duration)} · <a href="${legDirections(SHOWS[run[j]], SHOWS[run[j+1]])}" target="_blank" rel="noopener">Maps</a>`;
+          : `→ <span class="mi">${Math.round(mi)} mi</span> · ${fmtDur(leg.duration)} · <a href="${legDirections(SHOWS[run[j]], SHOWS[run[j+1]])}" target="_blank" rel="noopener">Maps</a>`;
       });
     }catch(err){
       console.warn("OSRM routing unreachable — straight lines for this run:", err);
@@ -934,21 +940,43 @@ function renderCrew(show){
   if(!session){
     p.innerHTML = `
       <div class="row"><div class="lbl">Crew sign-in</div>
-        <input class="note" id="authEmail" type="email" autocomplete="email" placeholder="you@email.com" style="min-height:0;height:44px">
-        <button class="btn primary" id="sendLink" style="margin-top:8px">Email me a sign-in link</button>
-        <p class="hint">One-tap link, no password. You stay signed in on this device. Only works for emails on the crew list.</p>
+        <input class="note" id="authEmail" type="email" autocomplete="email" inputmode="email" placeholder="you@email.com" style="min-height:0;height:44px">
+        <button class="btn primary" id="sendCode" style="margin-top:8px">Email me a code</button>
+        <div id="codeStep" style="display:none;margin-top:12px">
+          <div class="lbl">Enter the 6-digit code</div>
+          <input class="note" id="authCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="min-height:0;height:44px;letter-spacing:6px;font-size:1.2rem;text-align:center">
+          <button class="btn primary" id="verifyCode" style="margin-top:8px">Sign in</button>
+        </div>
+        <p class="hint">A code beats a link on phones: works even when your email app opens a different browser. Only emails on the crew list can sign in.</p>
       </div>`;
-    p.querySelector("#sendLink").addEventListener("click", async ()=>{
-      const email = p.querySelector("#authEmail").value.trim().toLowerCase();
-      const btn = p.querySelector("#sendLink");
-      if(!email){ btn.textContent = "Enter your email first"; return; }
-      btn.textContent = "Sending…";
-      const {error} = await supa.auth.signInWithOtp({ email,
-        options:{ emailRedirectTo: location.origin + location.pathname } });
-      btn.textContent = error
-        ? (/rate limit/i.test(error.message) ? "Email limit hit — try again in an hour" : "Failed: " + error.message)
-        : "Sent! Check your email 📬";
+
+    const emailEl = p.querySelector("#authEmail");
+    const sendBtn = p.querySelector("#sendCode");
+    sendBtn.addEventListener("click", async ()=>{
+      const email = emailEl.value.trim().toLowerCase();
+      if(!email){ sendBtn.textContent = "Enter your email first"; return; }
+      sendBtn.textContent = "Sending…";
+      const {error} = await supa.auth.signInWithOtp({ email, options:{ shouldCreateUser:true } });
+      if(error){
+        sendBtn.textContent = /rate limit/i.test(error.message) ? "Limit hit — wait an hour" : "Failed: " + error.message;
+        return;
+      }
+      sendBtn.textContent = "Code sent 📬 — resend";
+      p.querySelector("#codeStep").style.display = "block";
+      p.querySelector("#authCode").focus();
     });
+
+    const verifyBtn = p.querySelector("#verifyCode");
+    verifyBtn.addEventListener("click", async ()=>{
+      const email = emailEl.value.trim().toLowerCase();
+      const token = p.querySelector("#authCode").value.trim();
+      if(token.length < 6){ verifyBtn.textContent = "Enter the 6 digits"; return; }
+      verifyBtn.textContent = "Checking…";
+      const {error} = await supa.auth.verifyOtp({ email, token, type:"email" });
+      if(error) verifyBtn.textContent = "Wrong or expired — try again";
+      /* success fires onAuthStateChange, which re-renders this tab */
+    });
+    p.querySelector("#authCode").addEventListener("keydown", e=>{ if(e.key==="Enter") verifyBtn.click(); });
     return;
   }
 
@@ -1092,7 +1120,7 @@ async function renderWeather(show){
   if(radarMap){ radarMap.remove(); radarMap = null; radarLayers = []; radarFrames = []; }
   const p = document.getElementById("pWeather");
   const radarBlock = `
-    <div class="row" style="margin-top:16px"><div class="lbl">Live Radar</div></div>
+    <div class="row" style="margin-top:16px"><div class="lbl">Radar near the venue (live)</div></div>
     <div id="radarMap"></div>
     <div class="radar-ctl">
       <button class="btn" id="radarPlay" style="width:auto;margin:0;padding:6px 14px">▶ Play</button>
@@ -1373,7 +1401,7 @@ applyTheme();
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v28";
+const BUILD = "v30";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
