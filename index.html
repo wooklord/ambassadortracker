@@ -842,7 +842,7 @@ function select(i, fly){
     <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Google Calendar</a>
     <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Venue on Google Maps</a>
     <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Directions to venue</a>
-    <div class="row" style="margin-top:14px"><div class="lbl">Traffic near the venue (live)</div></div>
+    <div class="row" style="margin-top:14px"><div class="lbl">Live Traffic</div></div>
     <div class="traffic-wrap"><iframe class="traffic" src="https://embed.waze.com/iframe?zoom=13&lat=${show.lat}&lon=${show.lng}&pin=1" loading="lazy" title="Live Waze traffic near ${esc(show.venue)}"></iframe></div>
     <p class="hint">Dates refresh from Bandsintown every time this page loads, so new announcements appear and cancellations drop off automatically. Always confirm against <a href="https://eggymusic.com/tour/" target="_blank" rel="noopener">eggymusic.com/tour</a> before booking travel.</p>`;
 
