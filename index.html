@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2034%2044%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M17%201C24.5%201%2032%2014%2032%2025.5%2032%2034.6%2025.3%2041%2017%2041%208.7%2041%202%2034.6%202%2025.5%202%2014%209.5%201%2017%201Z%22%20fill%3D%22%23FDF8EF%22%20stroke%3D%22%233B2E1E%22%20stroke-width%3D%222.2%22/%3E%3Ccircle%20cx%3D%2217%22%20cy%3D%2226%22%20r%3D%227.5%22%20fill%3D%22%23F5A623%22%20stroke%3D%22%23E08A00%22%20stroke-width%3D%221.5%22/%3E%3C/svg%3E">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" onerror="this.onerror=null;this.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -398,6 +398,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>window.L||document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>')</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* =========================================================
@@ -434,9 +435,18 @@ const FALLBACK = [
 ];
 
 /* ---------- Map ---------- */
-const map = L.map("map", {zoomControl:false}).setView([39.5, -84], 5);
-L.control.zoom({position:"bottomright"}).addTo(map);
-const routeLayer = L.layerGroup().addTo(map);
+const HAS_MAP = typeof L !== "undefined";
+let map = null, routeLayer = null;
+if(HAS_MAP){
+  map = L.map("map", {zoomControl:false}).setView([39.5, -84], 5);
+  L.control.zoom({position:"bottomright"}).addTo(map);
+  routeLayer = L.layerGroup().addTo(map);
+} else {
+  console.error("Leaflet (L) failed to load — map disabled, list still works.");
+  const md = document.getElementById("map");
+  if(md) md.innerHTML = `<div style="padding:24px;text-align:center;color:var(--ink-soft);font-size:.85rem">
+    Map couldn't load (network or blocker). The show list, weather, and crew features still work.</div>`;
+}
 /* Primary tiles: CARTO (voyager light / dark_all dark). If blocked
    (ad blocker / web filter), fall back to openstreetmap.org. */
 const TILE_LIGHT = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
@@ -447,6 +457,7 @@ const osmFallback = () => L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y
   maxZoom:19
 }).addTo(map);
 function baseTiles(){
+  if(!HAS_MAP) return;
   if(tilesSwapped) return;   /* OSM fallback active; it has no dark twin */
   if(baseLayer) map.removeLayer(baseLayer);
   const dark = document.documentElement.dataset.theme === "dark";
@@ -680,7 +691,7 @@ async function loadShows(){
 function render(){
   const list = document.getElementById("shows");
   list.innerHTML = "";
-  markers.forEach(m=>map.removeLayer(m));
+  if(HAS_MAP) markers.forEach(m=>map.removeLayer(m));
   markers = [];
 
   if(SHOWS.length===0){
@@ -739,14 +750,16 @@ function render(){
       }
     }
 
-    const m = L.marker([show.lat, show.lng], {
-      icon:eggIcon(show),
-      title:`${show.venue} — ${show.date}`,
-      zIndexOffset: -show._stack * 100   /* later duplicates tuck behind */
-    }).addTo(map);
-    m.on("click", ()=>select(i,false));
-    markers.push(m);
-    bounds.push([show.lat, show.lng]);
+    if(HAS_MAP){
+      const m = L.marker([show.lat, show.lng], {
+        icon:eggIcon(show),
+        title:`${show.venue} — ${show.date}`,
+        zIndexOffset: -show._stack * 100   /* later duplicates tuck behind */
+      }).addTo(map);
+      m.on("click", ()=>select(i,false));
+      markers.push(m);
+      bounds.push([show.lat, show.lng]);
+    }
   });
 
   /* start the list at the first upcoming show, past chicks scrolled above */
@@ -756,7 +769,7 @@ function render(){
     if(card) list.scrollTop = card.offsetTop - list.offsetTop;
   }
 
-  if(bounds.length) map.fitBounds(bounds, {padding:[50,50]});
+  if(HAS_MAP && bounds.length) map.fitBounds(bounds, {padding:[50,50]});
   buildRoute();
 }
 
@@ -819,6 +832,7 @@ function drivableRuns(){
 }
 
 async function buildRoute(){
+  if(!HAS_MAP) return;
   routeLayer.clearLayers();
   if(SHOWS.length < 2) return;
 
@@ -862,8 +876,10 @@ function select(i, fly){
   activeIdx = i;
   const show = SHOWS[i];
   document.querySelectorAll(".show").forEach((el,j)=>el.classList.toggle("active", j===i));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(SHOWS[j], j===i)));
-  if(fly) map.flyTo([show.lat, show.lng], Math.max(map.getZoom(), 9), {duration:.7});
+  if(HAS_MAP){
+    markers.forEach((m,j)=>m.setIcon(eggIcon(SHOWS[j], j===i)));
+    if(fly) map.flyTo([show.lat, show.lng], Math.max(map.getZoom(), 9), {duration:.7});
+  }
 
   document.getElementById("dWhen").textContent = fmtLong(show.date) + (show.endDate ? " – " + fmtLong(show.endDate) : "");
   document.getElementById("dVenue").textContent = show.venue;
@@ -898,6 +914,7 @@ function select(i, fly){
     <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("burgers near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍔 Burgers</a>
     <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("dispensary near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🌿Dispos</a>
     <p class="hint">Lodging links open searches already filtered to this show's night and city, so only available places show up. Set the group size once you're there — it defaults to 4 adult
+
   renderCrew(show);
   loadGoingPile(show);
   loadShowTimes(show);
@@ -920,7 +937,7 @@ function applyGoingMarks(){
   SHOWS.forEach((s,j)=>{
     const going = myGoing.has(showKey(s)) && !isPast(s);
     if(cards[j]) cards[j].classList.toggle("im-going", going);
-    if(markers[j]) markers[j].setIcon(eggIcon(s, j===activeIdx));
+    if(HAS_MAP && markers[j]) markers[j].setIcon(eggIcon(s, j===activeIdx));
   });
 }
 
@@ -1269,6 +1286,7 @@ function wireRadar(show){
 }
 
 async function initRadar(show){
+  if(!HAS_MAP) return;
   const el = document.getElementById("radarMap");
   if(!el) return;
   if(!radarMap){
@@ -1418,7 +1436,7 @@ document.getElementById("closeDrawer").addEventListener("click", ()=>{
   document.getElementById("drawer").classList.remove("open");
   stopRadar();
   document.querySelectorAll(".show").forEach(el=>el.classList.remove("active"));
-  markers.forEach((m,j)=>m.setIcon(eggIcon(SHOWS[j])));
+  if(HAS_MAP) markers.forEach((m,j)=>m.setIcon(eggIcon(SHOWS[j])));
   activeIdx = null;
 });
 document.querySelectorAll(".tab").forEach(tab=>{
@@ -1516,15 +1534,17 @@ applyTheme();
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v40";
+const BUILD = "v41";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
 /* Leaflet must re-measure its container whenever geometry settles or changes,
    otherwise it renders a degenerate world-view strip */
-setTimeout(()=>{ map.invalidateSize(); if(markers.length) map.fitBounds(markers.map(m=>m.getLatLng()), {padding:[50,50]}); }, 400);
-window.addEventListener("resize", ()=>map.invalidateSize());
-window.addEventListener("orientationchange", ()=>setTimeout(()=>map.invalidateSize(), 250));
+if(HAS_MAP){
+  setTimeout(()=>{ map.invalidateSize(); if(markers.length) map.fitBounds(markers.map(m=>m.getLatLng()), {padding:[50,50]}); }, 400);
+  window.addEventListener("resize", ()=>map.invalidateSize());
+  window.addEventListener("orientationchange", ()=>setTimeout(()=>map.invalidateSize(), 250));
+}
 
 loadShows();
 
