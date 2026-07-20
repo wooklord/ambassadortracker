@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -249,15 +250,15 @@
   .wx-date{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tomato)}
   .wx-icon{font-size:1.6rem;line-height:1.4}
   .wx-label{font-size:.72rem;font-weight:700;color:var(--ink-soft)}
-  .wx-temp{font-family:var(--font-display);font-weight:800;font-size:1.05rem;margin-top:2px}
+  .wx-temp{font-family:var(--font-body);font-weight:800;font-size:1.05rem;margin-top:2px}
   .wx-meta{font-size:.68rem;font-weight:700;color:var(--ink-soft);margin-top:2px}
   #radarMap{height:220px;border:1px solid var(--line);border-radius:12px;background:#EAE3D2}
   .radar-ctl{display:flex;align-items:center;gap:10px;margin-top:8px}
-  .wx-hours{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:6px;margin-top:6px}
+  .wx-hours{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px}
   .wx-hour{background:var(--shell);border:1px solid var(--line);border-radius:10px;padding:7px 2px;text-align:center}
   .wx-hr{font-size:.62rem;font-weight:800;text-transform:uppercase;color:var(--tomato)}
   .wx-hicon{font-size:1.15rem;line-height:1.4}
-  .wx-htemp{font-family:var(--font-display);font-weight:800;font-size:.95rem}
+  .wx-htemp{font-family:var(--font-body);font-weight:800;font-size:.95rem}
   .wx-hmeta{font-size:.6rem;font-weight:700;color:var(--ink-soft)}
   /* aggressively crop the Waze embed: iframe runs much taller than its
      window and is pulled up so BOTH the top search bar and the bottom
@@ -861,7 +862,6 @@ function select(i, fly){
     <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("burgers near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍔 Burgers</a>
     <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("dispensary near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🌿Dispos</a>
     <p class="hint">Lodging links open searches already filtered to this show's night and city, so only available places show up. Set the group size once you're there — it defaults to 4 adults.</p>`;
-
   renderCrew(show);
   loadGoingPile(show);
   renderWeather(show);
@@ -1408,7 +1408,7 @@ applyTheme();
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v32";
+const BUILD = "v33";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
