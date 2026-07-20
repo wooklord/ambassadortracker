@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -844,23 +843,22 @@ function select(i, fly){
     <div class="row"><div class="lbl">Venue</div><div class="val">${esc(show.venue)}<br><span style="font-weight:600;color:var(--ink-soft)">${esc(show.city)}, ${esc(show.state)}</span></div></div>
     ${show.with && show.with.length ? `<div class="row"><div class="lbl">Also on the bill</div><div class="val">${esc(show.with.join(", "))}</div></div>` : ''}
     <div class="row" id="goingRow" style="display:none"><div class="lbl">Crew going</div><div id="goingPile"></div></div>
-    <a class="btn primary" href="${show.tickets || ticketSearch(show)}" target="_blank" rel="noopener">${show.tickets ? "Tickets" : "Search tickets"}</a>
-    <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Calendar</a>
-    <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Venue Info</a>
-    <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Directions</a>
-    <div class="row" style="margin-top:14px"><div class="lbl">Live Traffic</div></div>
+    <a class="btn primary" href="${show.tickets || ticketSearch(show)}" target="_blank" rel="noopener">${show.tickets ? "Get tickets" : "Search tickets"}</a>
+    <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Google Calendar</a>
+    <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Venue on Google Maps</a>
+    <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Directions to venue</a>
+    <div class="row" style="margin-top:14px"><div class="lbl">Traffic near the venue (live)</div></div>
     <div class="traffic-wrap"><iframe class="traffic" src="https://embed.waze.com/iframe?zoom=13&lat=${show.lat}&lon=${show.lng}&pin=1" loading="lazy" title="Live Waze traffic near ${esc(show.venue)}"></iframe></div>
     <p class="hint">Dates refresh from Bandsintown every time this page loads, so new announcements appear and cancellations drop off automatically. Always confirm against <a href="https://eggymusic.com/tour/" target="_blank" rel="noopener">eggymusic.com/tour</a> before booking travel.</p>`;
 
   document.getElementById("pLodging").innerHTML = `
     <div class="row"><div class="lbl">Stay dates</div><div class="val">Check in ${fmtLong(show.date)} · check out ${fmtLong(show.endDate ? addDays(show.endDate,1) : addDays(show.date,1))}</div></div>
-    <a class="btn" href="${L2.hotelsNear}" target="_blank" rel="noopener">Nearby Hotel Map</a>
-    <a class="btn primary" href="${L2.airbnb}" target="_blank" rel="noopener">airbnbs</a>
-    <a class="btn" href="${L2.booking}" target="_blank" rel="noopener">Booking.com</a>
+    <a class="btn primary" href="${L2.airbnb}" target="_blank" rel="noopener">Airbnbs with these dates</a>
+    <a class="btn" href="${L2.booking}" target="_blank" rel="noopener">Hotels on Booking.com</a>
+    <a class="btn" href="${L2.hotelsNear}" target="_blank" rel="noopener">Hotels near the venue (map)</a>
     <div class="row" style="margin-top:18px"><div class="lbl">Pre-show fuel</div></div>
-    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("pizza near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍕 Pizza</a>
-    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("burgers near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍔 Burgers</a>
-    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("dispensary near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🌿Dispos</a>
+    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("pizza near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍕 Pizza near the venue</a>
+    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("burgers near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍔 Burgers near the venue</a>
     <p class="hint">Lodging links open searches already filtered to this show's night and city, so only available places show up. Set the group size once you're there — it defaults to 4 adults.</p>`;
 
   renderCrew(show);
@@ -943,8 +941,8 @@ function renderCrew(show){
         <input class="note" id="authEmail" type="email" autocomplete="email" inputmode="email" placeholder="you@email.com" style="min-height:0;height:44px">
         <button class="btn primary" id="sendCode" style="margin-top:8px">Email me a code</button>
         <div id="codeStep" style="display:none;margin-top:12px">
-          <div class="lbl">Enter the 6-digit code</div>
-          <input class="note" id="authCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="min-height:0;height:44px;letter-spacing:6px;font-size:1.2rem;text-align:center">
+          <div class="lbl">Enter the code from your email</div>
+          <input class="note" id="authCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="code" style="min-height:0;height:44px;letter-spacing:6px;font-size:1.2rem;text-align:center">
           <button class="btn primary" id="verifyCode" style="margin-top:8px">Sign in</button>
         </div>
         <p class="hint">A code beats a link on phones: works even when your email app opens a different browser. Only emails on the crew list can sign in.</p>
@@ -956,9 +954,17 @@ function renderCrew(show){
       const email = emailEl.value.trim().toLowerCase();
       if(!email){ sendBtn.textContent = "Enter your email first"; return; }
       sendBtn.textContent = "Sending…";
-      const {error} = await supa.auth.signInWithOtp({ email, options:{ shouldCreateUser:true } });
+      let error = null;
+      try{
+        const res = await supa.auth.signInWithOtp({ email, options:{ shouldCreateUser:true } });
+        error = res.error;
+      }catch(ex){ error = ex; }
       if(error){
-        sendBtn.textContent = /rate limit/i.test(error.message) ? "Limit hit — wait an hour" : "Failed: " + error.message;
+        const msg = error.message || error.error_description || error.msg
+          || (error.status ? "server error " + error.status : "")
+          || (typeof error === "string" ? error : JSON.stringify(error));
+        console.error("OTP send failed:", error);
+        sendBtn.textContent = /rate limit/i.test(msg) ? "Limit hit — wait an hour" : "Failed: " + (msg || "unknown (see console)");
         return;
       }
       sendBtn.textContent = "Code sent 📬 — resend";
@@ -970,7 +976,7 @@ function renderCrew(show){
     verifyBtn.addEventListener("click", async ()=>{
       const email = emailEl.value.trim().toLowerCase();
       const token = p.querySelector("#authCode").value.trim();
-      if(token.length < 6){ verifyBtn.textContent = "Enter the 6 digits"; return; }
+      if(token.length < 6){ verifyBtn.textContent = "Enter the full code"; return; }
       verifyBtn.textContent = "Checking…";
       const {error} = await supa.auth.verifyOtp({ email, token, type:"email" });
       if(error) verifyBtn.textContent = "Wrong or expired — try again";
@@ -1401,7 +1407,7 @@ applyTheme();
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v30";
+const BUILD = "v32";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
