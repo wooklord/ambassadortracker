@@ -135,10 +135,7 @@
     content:"";flex:0 0 26px;border-top:2px dashed #D9CDBA;
   }
   .leg .mi{color:var(--yolk-deep)}
-  .leg-arrow{
-    color:var(--yolk-deep);font-size:1.5rem;font-weight:900;line-height:0;
-    position:relative;top:-3px;margin-right:2px;
-  }
+  .leg-arrow{color:var(--yolk-deep);vertical-align:middle;margin-right:3px;flex:0 0 auto}
   .leg a{color:var(--yolk-deep);text-decoration:none;border-bottom:1px dotted var(--yolk-deep)}
   .leg a:hover{border-bottom-style:solid}
   .leg a:focus-visible{outline:3px solid var(--yolk)}
@@ -349,6 +346,44 @@
   @media (prefers-reduced-motion:reduce){
     *{transition:none !important;animation:none !important}
   }
+
+  /* ---------- Admin ---------- */
+  #adminGear{
+    position:fixed;bottom:16px;left:16px;z-index:950;
+    width:44px;height:44px;border-radius:50%;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);font-size:1.2rem;cursor:pointer;
+    align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(59,46,30,.25);
+  }
+  #adminGear:focus-visible{outline:3px solid var(--yolk)}
+  #adminModal{
+    position:fixed;inset:0;z-index:1000;display:none;
+    background:rgba(24,21,18,.55);align-items:center;justify-content:center;padding:16px;
+  }
+  #adminModal.open{display:flex}
+  .admin-box{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    width:100%;max-width:440px;max-height:85vh;display:flex;flex-direction:column;
+    box-shadow:0 12px 40px rgba(59,46,30,.3);
+  }
+  .admin-head{display:flex;align-items:center;justify-content:space-between;
+    padding:16px 18px;border-bottom:3px solid var(--yolk)}
+  .admin-head h2{font-family:var(--font-display);font-weight:800;font-size:1.25rem}
+  #adminClose{border:1px solid var(--line);background:var(--shell);width:32px;height:32px;
+    border-radius:50%;cursor:pointer;color:var(--ink);font-weight:800}
+  .admin-body{padding:16px 18px;overflow-y:auto}
+  .adm-add{display:flex;gap:6px;margin-bottom:14px}
+  .adm-add input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;
+    background:var(--shell);font-family:var(--font-body);font-size:.85rem;color:var(--ink);padding:8px 10px}
+  .adm-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .adm-who{flex:1;min-width:0}
+  .adm-nick{width:100%;border:1px solid transparent;border-radius:8px;background:transparent;
+    font-family:var(--font-body);font-weight:800;font-size:.9rem;color:var(--ink);padding:4px 6px}
+  .adm-nick:hover,.adm-nick:focus-visible{border-color:var(--line);background:var(--shell);outline:none}
+  .adm-email{display:block;font-size:.7rem;color:var(--ink-soft);padding:0 6px}
+  .adm-admin{font-size:.72rem;font-weight:800;color:var(--ink-soft);display:flex;align-items:center;gap:3px;white-space:nowrap}
+  .adm-del{border:none;background:none;color:var(--ink-soft);cursor:pointer;font-weight:800;font-size:.9rem;padding:4px}
+  .adm-del:hover:not(:disabled){color:var(--tomato)}
+  .adm-del:disabled{opacity:.3;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -394,6 +429,17 @@
       <div class="panel" id="pLodging"></div>
       <div class="panel" id="pCrew"></div>
     </section>
+  </div>
+</div>
+
+<button id="adminGear" aria-label="Admin settings" style="display:none">⚙</button>
+<div id="adminModal" aria-hidden="true">
+  <div class="admin-box">
+    <div class="admin-head">
+      <h2>Crew Admin</h2>
+      <button id="adminClose" aria-label="Close">✕</button>
+    </div>
+    <div class="admin-body" id="adminBody"></div>
   </div>
 </div>
 
@@ -531,15 +577,23 @@ const eggSVG = (tier, blucifer=false, going=false)=>{
 </svg>`;
   }
   if(tier===4){
-    /* hatched: chick sitting in the cracked bottom shell */
+    /* hatched: a happy little chick popping out of the cracked shell */
     return `
 <svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <circle cx="17" cy="15" r="8.5" fill="#FFD23F" stroke="#3B2E1E" stroke-width="2"/>
-  <circle cx="14" cy="13.5" r="1.2" fill="#3B2E1E"/>
-  <circle cx="20" cy="13.5" r="1.2" fill="#3B2E1E"/>
-  <path d="M17 15.5 L14.8 18.5 L19.2 18.5 Z" fill="#E08A00" stroke="#3B2E1E" stroke-width="0.8"/>
+  <circle cx="17" cy="14.5" r="9" fill="#FFD23F" stroke="#3B2E1E" stroke-width="2"/>
+  <path d="M10 7.5 Q12 5.5 14 7.2" fill="none" stroke="#3B2E1E" stroke-width="1.4" stroke-linecap="round"/>
+  <path d="M20 7.2 Q22 5.5 24 7.5" fill="none" stroke="#3B2E1E" stroke-width="1.4" stroke-linecap="round"/>
+  <circle cx="13.7" cy="13.5" r="1.7" fill="#3B2E1E"/>
+  <circle cx="20.3" cy="13.5" r="1.7" fill="#3B2E1E"/>
+  <circle cx="14.3" cy="12.9" r=".55" fill="#fff"/>
+  <circle cx="20.9" cy="12.9" r=".55" fill="#fff"/>
+  <circle cx="11" cy="16.8" r="1.6" fill="#FF9BB0" opacity=".65"/>
+  <circle cx="23" cy="16.8" r="1.6" fill="#FF9BB0" opacity=".65"/>
+  <path d="M14.5 16.5 L19.5 16.5 L17 20 Z" fill="#F5901E" stroke="#3B2E1E" stroke-width="1"/>
+  <path d="M15 18.2 Q17 19.4 19 18.2" fill="none" stroke="#3B2E1E" stroke-width=".8" stroke-linecap="round"/>
   <path d="M2 25.5 C2 34.6 8.7 41 17 41 C25.3 41 32 34.6 32 25.5 L32 23.5 L28 20 L24 24 L20 20 L16 24 L12 20 L8 24 L4 20 L2 23.5 Z"
         fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M24.5 28 Q28 29 27.5 33" fill="none" stroke="#F5C542" stroke-width="2" stroke-linecap="round"/>
   <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"/>
 </svg>`;
   }
@@ -614,6 +668,7 @@ function lodgingLinks(show){
 }
 const ticketSearch = show => `https://www.google.com/search?q=${encodeURIComponent("Eggy tickets "+show.venue+" "+show.city+" "+show.date)}`;
 const legDirections = (a,b) => `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(a.venue+", "+a.city+", "+a.state)}&destination=${encodeURIComponent(b.venue+", "+b.city+", "+b.state)}`;
+const legChevron = `<svg class="leg-arrow" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const calLink = show => {
   const s = show.date.replace(/-/g,"");
   const e = addDays(show.endDate || show.date,1).replace(/-/g,"");
@@ -744,7 +799,7 @@ function render(){
           const direct = haversineMi(show, next);
           leg.id = "leg-"+i;
           const sameDay = gapDays <= 0;
-          leg.innerHTML = `<span class="leg-arrow">⌄</span> <span class="mi">~${Math.round(direct)} mi</span> ${sameDay ? "same-day" : "direct"} · <a href="${legDirections(show, next)}" target="_blank" rel="noopener">Maps</a>`;
+          leg.innerHTML = `${legChevron} <span class="mi">~${Math.round(direct)} mi</span> ${sameDay ? "same-day" : "direct"} · <a href="${legDirections(show, next)}" target="_blank" rel="noopener">Maps</a>`;
         }
         list.appendChild(leg);
       }
@@ -856,7 +911,7 @@ async function buildRoute(){
         if(!el) return;
         const mi = leg.distance/1609.34;
         if(mi < 1) return;   /* same-spot legs have no row to fill */
-        el.innerHTML = `<span class="leg-arrow">⌄</span> <span class="mi">${Math.round(mi)} mi</span> · ${fmtDur(leg.duration)} · <a href="${legDirections(SHOWS[run[j]], SHOWS[run[j+1]])}" target="_blank" rel="noopener">Maps</a>`;
+        el.innerHTML = `${legChevron} <span class="mi">${Math.round(mi)} mi</span> · ${fmtDur(leg.duration)} · <a href="${legDirections(SHOWS[run[j]], SHOWS[run[j+1]])}" target="_blank" rel="noopener">Maps</a>`;
       });
     }catch(err){
       console.warn("OSRM routing unreachable — straight lines for this run:", err);
@@ -931,6 +986,7 @@ function select(i, fly){
 /* ============ Phase 2: shared crew layer (Supabase) ============ */
 let supa = null, session = null, roster = null, crewChannel = null;
 let myGoing = new Set();   /* show_keys the signed-in user is Going to */
+let isAdmin = false;
 const showKey = show => show.date + "|" + show.venue;
 const myEmail = () => ((session && session.user.email) || "").toLowerCase();
 const nick = em => (roster && roster.get(em)) || (em || "").split("@")[0];
@@ -953,8 +1009,11 @@ if(window.supabase && /^sb_publishable_/.test(SUPA_KEY)){
 
 async function afterAuth(){
   if(session){
-    const {data} = await supa.from("crew").select("email,nickname");
+    const {data} = await supa.from("crew").select("email,nickname,is_admin");
     roster = new Map((data || []).map(r => [r.email, r.nickname]));
+    const me = (data || []).find(r => r.email === myEmail());
+    isAdmin = !!(me && me.is_admin);
+    document.getElementById("adminGear").style.display = isAdmin ? "flex" : "none";
     const {data:mine} = await supa.from("rsvps").select("show_key,status").eq("email", myEmail());
     myGoing = new Set((mine || []).filter(r=>r.status==="going").map(r=>r.show_key));
     applyGoingMarks();
@@ -984,6 +1043,8 @@ async function afterAuth(){
     }
   } else {
     myGoing = new Set();
+    isAdmin = false;
+    document.getElementById("adminGear").style.display = "none";
     applyGoingMarks();
   }
   if(activeIdx !== null){ renderCrew(SHOWS[activeIdx]); loadGoingPile(SHOWS[activeIdx]); }
@@ -1168,6 +1229,81 @@ async function sendMsg(show){
   await supa.from("messages").insert({ show_key: showKey(show), email: myEmail(), body });
 }
 
+/* ============ Admin: crew roster management ============ */
+async function openAdmin(){
+  document.getElementById("adminModal").classList.add("open");
+  document.getElementById("adminModal").setAttribute("aria-hidden","false");
+  await renderAdmin();
+}
+function closeAdmin(){
+  document.getElementById("adminModal").classList.remove("open");
+  document.getElementById("adminModal").setAttribute("aria-hidden","true");
+}
+async function renderAdmin(){
+  const body = document.getElementById("adminBody");
+  if(!isAdmin){ body.innerHTML = `<p class="hint">Admin access required.</p>`; return; }
+  body.innerHTML = `<p class="hint">Loading crew…</p>`;
+  const {data, error} = await supa.from("crew").select("email,nickname,is_admin").order("nickname");
+  if(error){ body.innerHTML = `<p class="hint">Couldn't load: ${esc(error.message)}</p>`; return; }
+  const rows = (data || []).map(r=>`
+    <div class="adm-row" data-email="${esc(r.email)}">
+      <div class="adm-who">
+        <input class="adm-nick" value="${esc(r.nickname)}" maxlength="40" aria-label="Nickname">
+        <span class="adm-email">${esc(r.email)}</span>
+      </div>
+      <label class="adm-admin"><input type="checkbox" class="adm-admtoggle" ${r.is_admin?"checked":""} ${r.email===myEmail()?"disabled":""}> admin</label>
+      <button class="adm-del" ${r.email===myEmail()?"disabled title='You can\\'t remove yourself'":""} aria-label="Remove">✕</button>
+    </div>`).join("");
+  body.innerHTML = `
+    <div class="adm-add">
+      <input id="admNewEmail" type="email" placeholder="new@email.com" autocomplete="off">
+      <input id="admNewNick" placeholder="Nickname" maxlength="40">
+      <button class="btn primary" id="admAddBtn" style="margin:0;width:auto;padding:0 14px">Add</button>
+    </div>
+    <div class="adm-list">${rows || '<p class="hint">No crew yet.</p>'}</div>
+    <p class="hint">Changes save immediately. You can't remove or un-admin yourself (prevents lockout).</p>`;
+
+  body.querySelector("#admAddBtn").addEventListener("click", addCrew);
+  body.querySelectorAll(".adm-nick").forEach(inp=>{
+    inp.addEventListener("blur", ()=>saveNick(inp.closest(".adm-row").dataset.email, inp.value));
+    inp.addEventListener("keydown", e=>{ if(e.key==="Enter") inp.blur(); });
+  });
+  body.querySelectorAll(".adm-admtoggle").forEach(cb=>{
+    cb.addEventListener("change", ()=>setAdmin(cb.closest(".adm-row").dataset.email, cb.checked));
+  });
+  body.querySelectorAll(".adm-del").forEach(btn=>{
+    if(btn.disabled) return;
+    btn.addEventListener("click", ()=>delCrew(btn.closest(".adm-row").dataset.email));
+  });
+}
+async function addCrew(){
+  const email = document.getElementById("admNewEmail").value.trim().toLowerCase();
+  const nickname = document.getElementById("admNewNick").value.trim();
+  if(!email || !nickname){ return; }
+  const {error} = await supa.from("crew").insert({ email, nickname });
+  if(error) alert("Add failed: " + error.message);
+  await renderAdmin();
+}
+async function saveNick(email, nickname){
+  nickname = nickname.trim();
+  if(!nickname) return;
+  await supa.from("crew").update({ nickname }).eq("email", email);
+  if(roster) roster.set(email, nickname);
+}
+async function setAdmin(email, val){
+  const {error} = await supa.from("crew").update({ is_admin: val }).eq("email", email);
+  if(error){ alert("Update failed: " + error.message); await renderAdmin(); }
+}
+async function delCrew(email){
+  if(!confirm("Remove " + (nick(email)) + " from the crew?")) return;
+  const {error} = await supa.from("crew").delete().eq("email", email);
+  if(error) alert("Remove failed: " + error.message);
+  await renderAdmin();
+}
+document.getElementById("adminGear").addEventListener("click", openAdmin);
+document.getElementById("adminClose").addEventListener("click", closeAdmin);
+document.getElementById("adminModal").addEventListener("click", e=>{ if(e.target.id==="adminModal") closeAdmin(); });
+
 /* ============ Weather tab: Open-Meteo forecast + RainViewer radar ============ */
 const wmo = code => {
   if(code === 0) return ["☀️","Clear"];
@@ -1189,7 +1325,7 @@ async function renderWeather(show){
   if(radarMap){ radarMap.remove(); radarMap = null; radarLayers = []; radarFrames = []; }
   const p = document.getElementById("pWeather");
   const radarBlock = `
-    <div class="row" style="margin-top:16px"><div class="lbl">Live Radar</div></div>
+    <div class="row" style="margin-top:16px"><div class="lbl">Radar near the venue (live)</div></div>
     <div id="radarMap"></div>
     <div class="radar-ctl">
       <button class="btn" id="radarPlay" style="width:auto;margin:0;padding:6px 14px">▶ Play</button>
@@ -1538,7 +1674,7 @@ applyTheme();
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v41";
+const BUILD = "v43";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
