@@ -901,10 +901,10 @@ function select(i, fly){
     ${show.with && show.with.length ? `<div class="row"><div class="lbl">Also on the bill</div><div class="val">${esc(show.with.join(", "))}</div></div>` : ''}
     <div class="row" id="goingRow" style="display:none"><div class="lbl">Crew going</div><div id="goingPile"></div></div>
     <a class="btn primary" href="${show.tickets || ticketSearch(show)}" target="_blank" rel="noopener">${show.tickets ? "Tickets" : "Search tickets"}</a>
-    <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Google Calendar</a>
+    <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Calendar</a>
     <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Venue Info</a>
     <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Directions</a>
-    <div class="row" style="margin-top:14px"><div class="lbl">Traffic near the venue (live)</div></div>
+    <div class="row" style="margin-top:14px"><div class="lbl">Live Traffic</div></div>
     <div class="traffic-wrap"><iframe class="traffic" src="https://embed.waze.com/iframe?zoom=13&lat=${show.lat}&lon=${show.lng}&pin=1" loading="lazy" title="Live Waze traffic near ${esc(show.venue)}"></iframe></div>
     <p class="hint">Dates refresh from Bandsintown every time this page loads, so new announcements appear and cancellations drop off automatically. Always confirm against <a href="https://eggymusic.com/tour/" target="_blank" rel="noopener">eggymusic.com/tour</a> before booking travel.</p>`;
 
