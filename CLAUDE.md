@@ -32,7 +32,7 @@ const BUILD = "vNN";
 It appends "· vNN" to the header subtitle and logs to console. **Every time you
 change `index.html`, bump this number** (v44 → v45 → …). It exists because mobile
 browsers cache aggressively and this is how the user confirms a deploy actually
-landed. Current version: **v44**. Never skip the bump.
+landed. Current version: **v46**. Never skip the bump.
 
 ---
 
