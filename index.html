@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -127,10 +128,9 @@
   .show .fest.bill{color:var(--going);background:#E8F3F0}
   .leg{
     display:flex;align-items:center;gap:8px;justify-content:center;
-    margin:-3px 0 6px;padding:2px 0;min-height:18px;
+    margin:-3px 0 6px;padding:2px 0;
     font-size:.7rem;font-weight:800;color:var(--ink-soft);letter-spacing:.03em;
   }
-  .leg:empty::before,.leg:empty::after{flex:0 0 40px}
   .leg::before,.leg::after{
     content:"";flex:0 0 26px;border-top:2px dashed #D9CDBA;
   }
@@ -593,7 +593,6 @@ const eggSVG = (tier, blucifer=false, going=false)=>{
   <path d="M15 18.2 Q17 19.4 19 18.2" fill="none" stroke="#3B2E1E" stroke-width=".8" stroke-linecap="round"/>
   <path d="M2 25.5 C2 34.6 8.7 41 17 41 C25.3 41 32 34.6 32 25.5 L32 23.5 L28 20 L24 24 L20 20 L16 24 L12 20 L8 24 L4 20 L2 23.5 Z"
         fill="#FDF8EF" stroke="#3B2E1E" stroke-width="2.2" stroke-linejoin="round"/>
-  <path d="M24.5 28 Q28 29 27.5 33" fill="none" stroke="#F5C542" stroke-width="2" stroke-linecap="round"/>
   <path d="M17 41 L17 43.5" stroke="#3B2E1E" stroke-width="2.2"/>
 </svg>`;
   }
@@ -784,6 +783,9 @@ function render(){
        · same venue, same/adjacent day: nothing
        · drivable (same day different venue, or 1–2 days forward): dashes + info
        · 3+ days apart: bare dashes */
+    /* Between-show connector — only drivable runs get a row:
+       · same day different venue, or 1–2 days forward: dashes + info
+       · everything else (same venue, or 3+ days apart): nothing */
     if(i < SHOWS.length-1){
       const next = SHOWS[i+1];
       const sameSpot = show.lat.toFixed(4) === next.lat.toFixed(4) && show.lng.toFixed(4) === next.lng.toFixed(4);
@@ -792,15 +794,13 @@ function render(){
       const gapDays = Math.round((new Date(next.date) - new Date(show.date)) / 86400000);
       const drivable = gapDays >= 0 && gapDays <= 2 && !sameSpot && !isPast(show) && !isPast(next);
 
-      if(!(sameSpot && gapDays <= 0)){
+      if(drivable){
         const leg = document.createElement("div");
         leg.className = "leg";
-        if(drivable){
-          const direct = haversineMi(show, next);
-          leg.id = "leg-"+i;
-          const sameDay = gapDays <= 0;
-          leg.innerHTML = `${legChevron} <span class="mi">~${Math.round(direct)} mi</span> ${sameDay ? "same-day" : "direct"} · <a href="${legDirections(show, next)}" target="_blank" rel="noopener">Maps</a>`;
-        }
+        leg.id = "leg-"+i;
+        const direct = haversineMi(show, next);
+        const sameDay = gapDays <= 0;
+        leg.innerHTML = `${legChevron} <span class="mi">~${Math.round(direct)} mi</span> ${sameDay ? "same-day" : "direct"} · <a href="${legDirections(show, next)}" target="_blank" rel="noopener">Maps</a>`;
         list.appendChild(leg);
       }
     }
@@ -955,23 +955,22 @@ function select(i, fly){
     </div>
     ${show.with && show.with.length ? `<div class="row"><div class="lbl">Also on the bill</div><div class="val">${esc(show.with.join(", "))}</div></div>` : ''}
     <div class="row" id="goingRow" style="display:none"><div class="lbl">Crew going</div><div id="goingPile"></div></div>
-    <a class="btn primary" href="${show.tickets || ticketSearch(show)}" target="_blank" rel="noopener">${show.tickets ? "Tickets" : "Search tickets"}</a>
-    <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Calendar</a>
-    <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Venue Info</a>
-    <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Directions</a>
-    <div class="row" style="margin-top:14px"><div class="lbl">Live Traffic</div></div>
+    <a class="btn primary" href="${show.tickets || ticketSearch(show)}" target="_blank" rel="noopener">${show.tickets ? "Get tickets" : "Search tickets"}</a>
+    <a class="btn" href="${calLink(show)}" target="_blank" rel="noopener">Add to Google Calendar</a>
+    <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Venue on Google Maps</a>
+    <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(show.venue+", "+show.city+", "+show.state)}" target="_blank" rel="noopener">Directions to venue</a>
+    <div class="row" style="margin-top:14px"><div class="lbl">Traffic near the venue (live)</div></div>
     <div class="traffic-wrap"><iframe class="traffic" src="https://embed.waze.com/iframe?zoom=13&lat=${show.lat}&lon=${show.lng}&pin=1" loading="lazy" title="Live Waze traffic near ${esc(show.venue)}"></iframe></div>
     <p class="hint">Dates refresh from Bandsintown every time this page loads, so new announcements appear and cancellations drop off automatically. Always confirm against <a href="https://eggymusic.com/tour/" target="_blank" rel="noopener">eggymusic.com/tour</a> before booking travel.</p>`;
 
   document.getElementById("pLodging").innerHTML = `
     <div class="row"><div class="lbl">Stay dates</div><div class="val">Check in ${fmtLong(show.date)} · check out ${fmtLong(show.endDate ? addDays(show.endDate,1) : addDays(show.date,1))}</div></div>
-    <a class="btn primary" href="${L2.airbnb}" target="_blank" rel="noopener">airbnbs</a>
-    <a class="btn" href="${L2.booking}" target="_blank" rel="noopener">Booking.com</a>
-    <a class="btn" href="${L2.hotelsNear}" target="_blank" rel="noopener">Nearby Hotel Map</a>
+    <a class="btn primary" href="${L2.airbnb}" target="_blank" rel="noopener">Airbnbs with these dates</a>
+    <a class="btn" href="${L2.booking}" target="_blank" rel="noopener">Hotels on Booking.com</a>
+    <a class="btn" href="${L2.hotelsNear}" target="_blank" rel="noopener">Hotels near the venue (map)</a>
     <div class="row" style="margin-top:18px"><div class="lbl">Pre-show fuel</div></div>
-    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("pizza near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍕 Pizza</a>
-    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("restaurants near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍴 Restaurants</a>
-    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("dispensary near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🌿 Dispos</a>    
+    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("pizza near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍕 Pizza near the venue</a>
+    <a class="btn" href="https://www.google.com/maps/search/${encodeURIComponent("burgers near "+show.venue+" "+show.city+" "+show.state)}" target="_blank" rel="noopener">🍔 Burgers near the venue</a>
     <p class="hint">Lodging links open searches already filtered to this show's night and city, so only available places show up. Set the group size once you're there — it defaults to 4 adults.</p>`;
 
   renderCrew(show);
@@ -1674,7 +1673,7 @@ applyTheme();
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v43";
+const BUILD = "v44";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
