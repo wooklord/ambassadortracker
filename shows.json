@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-14T14:00:00Z",
+  "updated": "2026-08-04T12:00:00Z",
   "source": "jambase-manual",
   "shows": [
     {"date":"2026-07-11","venue":"Levitt Pavilion","city":"Westport","state":"CT","lat":41.1415,"lng":-73.3579,"tickets":"https://www.jambase.com/show/eggy-levitt-pavilion-20260711","festival":false,"with":["Tom Hamilton"]},
@@ -18,12 +18,24 @@
     {"date":"2026-08-07","seq":1,"endDate":"2026-08-09","venue":"Guster's On The Ocean","city":"Portland","state":"ME","lat":43.6465,"lng":-70.2753,"tickets":"https://www.jambase.com/festival/gusters-on-the-ocean-2026","festival":true,"with":["Guster","Iron & Wine","Watchhouse"]},
     {"date":"2026-08-07","seq":2,"venue":"The Westcott Theater","city":"Syracuse","state":"NY","lat":43.0392,"lng":-76.1146,"tickets":"https://www.jambase.com/show/eggy-the-westcott-theater-20260807","festival":false},
     {"date":"2026-08-08","venue":"Shakedown Lounge at Stowe Cider","city":"Stowe","state":"VT","lat":44.4654,"lng":-72.6874,"tickets":"https://www.jambase.com/show/eggy-shakedown-lounge-at-stowe-cider-20260808","festival":false},
-    {"date":"2026-08-14","venue":"The Pines Music Park","city":"Eau Claire","state":"WI","lat":44.8113,"lng":-91.4985,"tickets":"https://www.jambase.com/show/the-string-cheese-incident-the-pines-music-park-20260814","festival":true,"with":["The String Cheese Incident","Leftover Salmon"]},
+    {"date":"2026-08-14","venue":"The Pines Music Park","city":"Eau Claire","state":"WI","lat":44.8113,"lng":-91.4985,"tickets":"https://www.jambase.com/show/the-string-cheese-incident-the-pines-music-park-20260814","festival":true,"with":["The String Cheese Incident","Leftover Salmon","Dogs In A Pile"]},
     {"date":"2026-09-04","endDate":"2026-09-06","venue":"Adirondack Independence Music Festival","city":"Lake George","state":"NY","lat":43.4212,"lng":-73.7123,"tickets":"https://www.jambase.com/festival/adirondack-independence-music-festival-2026","festival":true,"with":["moe.","Dogs In A Pile","Deer Tick"]},
     {"date":"2026-09-18","endDate":"2026-09-20","venue":"Telluride Blues & Brews Festival","city":"Telluride","state":"CO","lat":37.9375,"lng":-107.8123,"tickets":"https://www.jambase.com/festival/telluride-blues-brews-festival-2026","festival":true,"with":["The Marcus King Band","Taj Mahal","Keb' Mo'"]},
+    {"date":"2026-10-15","venue":"Buffalo Iron Works","city":"Buffalo","state":"NY","lat":42.874527,"lng":-78.874734,"tickets":"https://www.jambase.com/show/eggy-buffalo-iron-works-20261015","festival":false},
     {"date":"2026-10-16","venue":"Beachland Ballroom","city":"Cleveland","state":"OH","lat":41.5697,"lng":-81.5715,"tickets":"https://www.jambase.com/show/eggy-beachland-ballroom-20261016","festival":false},
     {"date":"2026-10-17","venue":"El Club","city":"Detroit","state":"MI","lat":42.3183,"lng":-83.1078,"tickets":"https://www.jambase.com/show/eggy-el-club-20261017","festival":false},
     {"date":"2026-10-18","venue":"High Noon Saloon","city":"Madison","state":"WI","lat":43.0782,"lng":-89.3735,"tickets":"https://www.jambase.com/show/eggy-high-noon-saloon-20261018","festival":false},
-    {"date":"2026-10-22","endDate":"2026-10-25","venue":"Suwannee Hulaween","city":"Live Oak","state":"FL","lat":30.3949,"lng":-82.9401,"tickets":"https://www.jambase.com/festival/hulaween-2026","festival":true,"with":["Geese","Pretty Lights","My Morning Jacket"]}
+    {"date":"2026-10-19","venue":"Garcia's Chicago","city":"Chicago","state":"IL","lat":41.8829,"lng":-87.6525,"tickets":"https://www.jambase.com/show/eggy-garcias-chicago-20261019","festival":false},
+    {"date":"2026-10-21","venue":"Lakeview Marina Music Park","city":"Birmingham","state":"AL","lat":33.5156,"lng":-86.7848,"tickets":"https://www.jambase.com/show/eggy-lakeview-marina-music-park-20261021","festival":false},
+    {"date":"2026-10-22","endDate":"2026-10-25","venue":"Suwannee Hulaween","city":"Live Oak","state":"FL","lat":30.3949,"lng":-82.9401,"tickets":"https://www.jambase.com/festival/hulaween-2026","festival":true,"with":["Geese","Pretty Lights","My Morning Jacket"]},
+    {"date":"2026-11-06","venue":"Ardmore Music Hall","city":"Ardmore","state":"PA","lat":40.007595,"lng":-75.290002,"tickets":"https://www.jambase.com/show/eggy-ardmore-music-hall-20261106","festival":false},
+    {"date":"2026-11-07","venue":"Ardmore Music Hall","city":"Ardmore","state":"PA","lat":40.007595,"lng":-75.290002,"tickets":"https://www.jambase.com/show/eggy-ardmore-music-hall-20261107","festival":false},
+    {"date":"2026-11-13","venue":"Bowery Ballroom","city":"New York","state":"NY","lat":40.72076,"lng":-73.993868,"tickets":"https://www.jambase.com/show/eggy-bowery-ballroom-20261113","festival":false},
+    {"date":"2026-11-14","venue":"Bowery Ballroom","city":"New York","state":"NY","lat":40.72076,"lng":-73.993868,"tickets":"https://www.jambase.com/show/eggy-bowery-ballroom-20261114","festival":false},
+    {"date":"2026-11-20","venue":"The Atlantis","city":"Washington","state":"DC","lat":38.9182,"lng":-77.0236,"tickets":"https://www.jambase.com/show/eggy-the-atlantis-20261120","festival":false},
+    {"date":"2026-11-21","venue":"The Atlantis","city":"Washington","state":"DC","lat":38.9182,"lng":-77.0236,"tickets":"https://www.jambase.com/show/eggy-the-atlantis-20261121","festival":false},
+    {"date":"2026-11-25","venue":"Toad's Place","city":"New Haven","state":"CT","lat":41.311597,"lng":-72.929371,"tickets":"https://www.jambase.com/show/eggy-toads-place-20261125","festival":false},
+    {"date":"2026-12-04","venue":"Annabel's","city":"Toronto","state":"ON","lat":43.6326,"lng":-79.4216,"tickets":"https://www.jambase.com/show/eggy-annabels-20261204","festival":false},
+    {"date":"2026-12-05","venue":"Annabel's","city":"Toronto","state":"ON","lat":43.6326,"lng":-79.4216,"tickets":"https://www.jambase.com/show/eggy-annabels-20261205","festival":false}
   ]
 }
