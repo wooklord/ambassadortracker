@@ -141,6 +141,16 @@
   .leg a:focus-visible{outline:3px solid var(--yolk)}
   .empty-note{padding:20px;text-align:center;color:var(--ink-soft);font-size:.85rem}
 
+  /* ---------- Same-venue stacked "deck" (two-night stands etc.) ----------
+     Adjacent same-coords shows touch (no gap) and share a left spine so
+     they read as one unit, while staying separately tappable cards. */
+  .show.stacked{margin-bottom:0;border-left-width:3px;border-left-color:var(--ink-soft)}
+  .show.stack-top{border-radius:var(--radius) var(--radius) 0 0}
+  .show.stack-mid{border-radius:0}
+  .show.stack-bottom{border-radius:0 0 var(--radius) var(--radius);margin-bottom:9px}
+  .show.stacked:hover{transform:none;box-shadow:0 1px 6px rgba(59,46,30,.08)}
+  .show.stacked.im-going{border-left-width:4px;border-left-color:var(--yolk)}
+
   /* ---------- Detail drawer ---------- */
   #drawer{
     position:absolute;top:0;right:0;height:100%;width:400px;max-width:100%;
@@ -643,6 +653,10 @@ const fmtChip = d => {
 const addDays = (d,n)=>{const dt=new Date(d+"T12:00:00");dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);};
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
+/* Two shows at the same venue (coords rounded to 4 decimals — city/venue-block
+   precision). Used for leg-skipping, route chaining, and card-deck grouping. */
+const sameSpot = (a,b) => !!a && !!b && a.lat.toFixed(4)===b.lat.toFixed(4) && a.lng.toFixed(4)===b.lng.toFixed(4);
+
 /* ---- Distance helpers ---- */
 const haversineMi = (a,b)=>{
   const R=3958.8, toR=x=>x*Math.PI/180;
@@ -755,6 +769,14 @@ function render(){
 
   const bounds = [];
   const coordCount = {};
+  /* Adjacent same-venue runs (two-night stands etc.) get rendered as a
+     stacked "deck" instead of separate cards — top/mid/bottom position
+     per card, based on whether the neighbor in the sorted list matches. */
+  const stackClass = SHOWS.map((s,i)=>{
+    const p = sameSpot(s, SHOWS[i-1]), n = sameSpot(s, SHOWS[i+1]);
+    if(!p && !n) return "";
+    return p && n ? " stacked stack-mid" : n ? " stacked stack-top" : " stacked stack-bottom";
+  });
   SHOWS.forEach((show,i)=>{
     const ck = show.lat.toFixed(5)+","+show.lng.toFixed(5);
     show._stack = coordCount[ck] || 0;
@@ -762,7 +784,7 @@ function render(){
     const tier = tierOf(show);
     const chip = fmtChip(show.date);
     const el = document.createElement("div");
-    el.className = "show" + (tier===4 ? " past" : "") + (myGoing.has(showKey(show)) && !isPast(show) ? " im-going" : "");
+    el.className = "show" + (tier===4 ? " past" : "") + (myGoing.has(showKey(show)) && !isPast(show) ? " im-going" : "") + stackClass[i];
     el.setAttribute("role","listitem");
     el.setAttribute("tabindex","0");
     el.innerHTML = `
@@ -783,11 +805,10 @@ function render(){
        · everything else (same venue, or 3+ days apart): nothing */
     if(i < SHOWS.length-1){
       const next = SHOWS[i+1];
-      const sameSpot = show.lat.toFixed(4) === next.lat.toFixed(4) && show.lng.toFixed(4) === next.lng.toFixed(4);
       /* travel gap measures from the day you PLAY (start date), not a
          festival's end — the band may leave mid-festival for the next show */
       const gapDays = Math.round((new Date(next.date) - new Date(show.date)) / 86400000);
-      const drivable = gapDays >= 0 && gapDays <= 2 && !sameSpot && !isPast(show) && !isPast(next);
+      const drivable = gapDays >= 0 && gapDays <= 2 && !sameSpot(show, next) && !isPast(show) && !isPast(next);
 
       if(drivable){
         const leg = document.createElement("div");
@@ -870,11 +891,10 @@ function drivableRuns(){
   let run = [0];
   for(let i=0;i<SHOWS.length-1;i++){
     const a = SHOWS[i], b = SHOWS[i+1];
-    const sameSpot = a.lat.toFixed(4)===b.lat.toFixed(4) && a.lng.toFixed(4)===b.lng.toFixed(4);
     const gapDays = Math.round((new Date(b.date) - new Date(a.date)) / 86400000);
     /* chain forward hops of 0–2 days between distinct upcoming venues
        (0 days = same-day afternoon→night drive, one band) */
-    if(gapDays >= 0 && gapDays <= 2 && !sameSpot && !isPast(a) && !isPast(b)){ run.push(i+1); }
+    if(gapDays >= 0 && gapDays <= 2 && !sameSpot(a, b) && !isPast(a) && !isPast(b)){ run.push(i+1); }
     else { if(run.length>1) runs.push(run); run=[i+1]; }
   }
   if(run.length>1) runs.push(run);
@@ -1669,7 +1689,7 @@ applyTheme();
 })();
 
 /* Version marker: confirm what's actually deployed (mobile caches lie) */
-const BUILD = "v46";
+const BUILD = "v47";
 document.querySelector(".sub").textContent += " · " + BUILD;
 console.log("Ambassadors build " + BUILD);
 
